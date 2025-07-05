@@ -1,7 +1,8 @@
 from fastapi import FastAPI
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import MongoClient
 
 app = FastAPI()
+
 
 """
 
