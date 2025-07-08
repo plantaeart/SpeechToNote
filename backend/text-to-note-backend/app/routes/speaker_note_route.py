@@ -6,12 +6,6 @@ from ..models.response.response_model import SNResponse
 from ..models.speaker_note.sn_request_model import SNRequest
 from ..models.speaker_note.speaker_note_model import SpeakerNote
 
-"""
-
-http://127.0.0.1:8000/docs pour le Swagger
-
-"""
-
 router_speaker_note = APIRouter(prefix="/speaker_notes", tags=["speaker_notes"])
 
 # Create a speaker_note
