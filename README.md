@@ -46,8 +46,12 @@ At the end the __speaker__ will be able to review the note and modify it by hand
   * Create the speaker command model 🟩
   * Create the speaker command routes 🟩
   * Test it manually 🟩
-  * Create automatic tests 🟧
+  * Create automatic tests with pyTest 🟩
 * Init the VueJS frontend (with Pinia) 🟩
   * Create the models services 🟪
   * Create the pinia stores 🟪
+  * Implement the business logic of record speech to text 🟪
+  * Add the logic of the "commands" to structure the note 🟪
+  * Make possible to edit the notes 🟪
+  * Make possible to delete the notes 🟪
 * Init the mongodb local docker 🟩
