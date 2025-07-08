@@ -6,12 +6,6 @@ from ..models.response.response_model import SNResponse
 from ..models.speaker_command.sc_request_model import SCRequest
 from ..models.speaker_command.speaker_command_model import SpeakerCommand
 
-"""
-
-http://127.0.0.1:8000/docs pour le Swagger
-
-"""
-
 router_speaker_command = APIRouter(prefix="/speaker_commands", tags=["speaker_commands"])
 
 # Create a speaker_command
