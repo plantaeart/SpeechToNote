@@ -17,9 +17,14 @@ def test_db():
     
     yield test_db
     
-    # Teardown: Drop test database completely
-    test_client.drop_database(TEST_DATABASE_NAME)
-    test_client.close()
+    # Teardown: Drop test database completely after all tests
+    try:
+        test_client.drop_database(TEST_DATABASE_NAME)
+        print(f"🗑️ Test database {TEST_DATABASE_NAME} dropped after all tests completed.")
+    except Exception as cleanup_error:
+        print(f"Error dropping test database: {cleanup_error}")
+    finally:
+        test_client.close()
 
 @pytest.fixture(autouse=True)
 def mock_get_collection(monkeypatch, test_db):
@@ -42,7 +47,7 @@ def test_client():
     with TestClient(app) as client:
         yield client
 
-# clean collections and remove test database
+# Clean collections only (not database) after each test
 @pytest.fixture(autouse=True)
 def clean_collections(test_db):
     """Clean up collections before and after each test"""
@@ -53,13 +58,10 @@ def clean_collections(test_db):
         
         yield
         
+        # Clear collections after each test as well
+        for collection_name in TEST_COLLECTIONS:
+            test_db[collection_name].delete_many({})
+        
     except Exception as e:
         print(f"Error during test execution: {e}")
         raise
-    finally:
-        # Always delete database, even if error occurs
-        try:
-            test_db.client.drop_database(TEST_DATABASE_NAME)
-            print(f"🗑️Test database {TEST_DATABASE_NAME} dropped after tests.")
-        except Exception as cleanup_error:
-            print(f"Error dropping test database: {cleanup_error}")

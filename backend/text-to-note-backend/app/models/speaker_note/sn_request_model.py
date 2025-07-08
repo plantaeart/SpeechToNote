@@ -32,5 +32,17 @@ class SNUpdateRequest(BaseModel):
             }
         }
 
+class SNDeleteByIdsRequest(BaseModel):
+    """Request model for deleting speaker notes by IDs"""
+    ids_note: List[int]
+    
+    class Config:
+        # Example schema for documentation
+        schema_extra = {
+            "example": {
+                "ids_note": [1, 2, 3, 4]
+            }
+        }
+
 # Keep the original for backward compatibility if needed
 SNRequest = SNCreateRequest
