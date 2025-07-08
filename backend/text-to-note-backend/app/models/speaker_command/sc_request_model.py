@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 from typing import List
-from .speaker_command_model import SpeakerCommand, SpeakerCommandUpdate
+from .speaker_command_model import SpeakerCommandCreate, SpeakerCommandUpdate
 
-class SCRequest(BaseModel):
-    """Standardized request model for Speaker Command API"""
-    data: List[SpeakerCommand | SpeakerCommandUpdate]
+class SCCreateRequest(BaseModel):
+    """Request model for creating speaker commands"""
+    data: List[SpeakerCommandCreate]
     
     class Config:
         # Example schema for documentation
@@ -12,7 +12,25 @@ class SCRequest(BaseModel):
             "example": {
                 "data": [
                     {"command_name": "save_note", "command_vocal": "sauvegarder la note", "command_description": "Sauvegarde la note en cours"},
-                    {"command_name": "export_pdf", "command_vocal": "exporter en PDF", "command_description": "Exporte la note au format PDF"}
+                    {"command_name": "export_pdf", "command_vocal": "exporter en PDF"}
                 ]
             }
         }
+
+class SCUpdateRequest(BaseModel):
+    """Request model for updating speaker commands"""
+    data: List[SpeakerCommandUpdate]
+    
+    class Config:
+        # Example schema for documentation
+        schema_extra = {
+            "example": {
+                "data": [
+                    {"id_command": 1, "command_name": "updated_save"},
+                    {"id_command": 2, "command_description": "Updated description only"}
+                ]
+            }
+        }
+
+# Keep the original for backward compatibility if needed
+SCRequest = SCCreateRequest

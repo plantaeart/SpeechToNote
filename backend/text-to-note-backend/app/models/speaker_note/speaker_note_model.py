@@ -3,11 +3,11 @@ from typing import List, Optional
 from datetime import datetime
 
 
-class SpeakerNoteBase(BaseModel):
-    """Modèle de base pour une note de speaker"""
+class SpeakerNoteCreate(BaseModel):
+    """Modèle pour la création d'une note"""
     title: str = Field(..., min_length=1, max_length=200, description="Titre de la note")
     content: str = Field(..., description="Contenu de la note")
-    commands: List[str] = Field(default=[], description="Liste des commandes associées")
+    commands: Optional[List[str]] = Field(default=[], description="Liste des commandes associées")
 
 
 class SpeakerNoteUpdate(BaseModel):
@@ -17,10 +17,14 @@ class SpeakerNoteUpdate(BaseModel):
     content: Optional[str] = None
     commands: Optional[List[str]] = None
 
-class SpeakerNote(SpeakerNoteBase):
+
+class SpeakerNote(BaseModel):
     """Modèle complet pour une note avec ID"""
     id_note: Optional[int] = Field(None, description="Identifiant unique de la note")
-    schema_version: Optional[str] = Field(default="1.1.0", description="Version du schéma de données")
+    title: Optional[str] = Field(None, min_length=1, max_length=200, description="Titre de la note")
+    content: Optional[str] = Field(None, description="Contenu de la note")
+    commands: Optional[List[str]] = Field(None, description="Liste des commandes associées")
+    schema_version: Optional[str] = Field(default="1.0.0", description="Version du schéma de données")
     created_at: Optional[datetime] = Field(None, description="Date de création")
     updated_at: Optional[datetime] = Field(None, description="Date de dernière modification")
 

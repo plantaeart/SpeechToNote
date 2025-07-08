@@ -1,13 +1,13 @@
 from fastapi import APIRouter
 from datetime import datetime
 from ..models.response.response_model import SNResponse
-from ..models.speaker_note.sn_request_model import SNRequest
+from ..models.speaker_note.sn_request_model import SNCreateRequest, SNUpdateRequest
 
 router_speaker_note = APIRouter(prefix="/speaker_notes", tags=["speaker_notes"])
 
 # Create a speaker_note
 @router_speaker_note.post("/", response_model=SNResponse)
-async def create_speaker_note(request: SNRequest):
+async def create_speaker_note(request: SNCreateRequest):
     """Create a new speaker note."""
     from app import get_collection
     collection = get_collection("SPEAKER_NOTES")
@@ -34,6 +34,10 @@ async def create_speaker_note(request: SNRequest):
                 speaker_note_dump["schema_version"] = "1.0.0"
                 speaker_note_dump["created_at"] = current_time
                 speaker_note_dump["updated_at"] = current_time
+                
+                # Set default commands if not provided
+                if "commands" not in speaker_note_dump:
+                    speaker_note_dump["commands"] = []
                 
                 next_id += 1
                 
@@ -67,7 +71,7 @@ async def get_speaker_notes():
 
 # Update speaker notes
 @router_speaker_note.put("/", response_model=SNResponse)
-async def update_speaker_notes(request: SNRequest):
+async def update_speaker_notes(request: SNUpdateRequest):
     """Update multiple speaker notes."""
     from app import get_collection
     collection = get_collection("SPEAKER_NOTES")
@@ -79,10 +83,7 @@ async def update_speaker_notes(request: SNRequest):
         if collection is not None:
             updated_notes = []
             for speaker_note_update in request.data:
-                # Check if id_note exists in the model
-                if not hasattr(speaker_note_update, 'id_note') or not speaker_note_update.id_note:
-                    return SNResponse.error("id_note is required for all speaker notes to update", 400)
-                
+                # id_note is guaranteed to exist because of SpeakerNoteUpdate model
                 id_note = speaker_note_update.id_note
                 
                 # Convert to dict and exclude None values and id_note

@@ -3,11 +3,12 @@ from typing import Optional
 from datetime import datetime
 
 
-class SpeakerCommandBase(BaseModel):
-    """Modèle de base pour une commande de speaker"""
+class SpeakerCommandCreate(BaseModel):
+    """Modèle pour la création d'une commande"""
     command_name: str = Field(..., min_length=1, max_length=100, description="Nom de la commande")
     command_vocal: str = Field(..., min_length=1, max_length=200, description="Commande vocale")
     command_description: Optional[str] = Field(None, description="Description de la commande")
+
 
 class SpeakerCommandUpdate(BaseModel):
     """Modèle pour la mise à jour d'une commande"""
@@ -17,9 +18,12 @@ class SpeakerCommandUpdate(BaseModel):
     command_description: Optional[str] = None
 
 
-class SpeakerCommand(SpeakerCommandBase):
+class SpeakerCommand(BaseModel):
     """Modèle complet pour une commande avec ID"""
     id_command: Optional[int] = Field(None, description="Identifiant unique de la commande")
+    command_name: Optional[str] = Field(None, min_length=1, max_length=100, description="Nom de la commande")
+    command_vocal: Optional[str] = Field(None, min_length=1, max_length=200, description="Commande vocale")
+    command_description: Optional[str] = Field(None, description="Description de la commande")
     schema_version: Optional[str] = Field(default="1.0.0", description="Version du schéma de données")
     created_at: Optional[datetime] = Field(None, description="Date de création")
     updated_at: Optional[datetime] = Field(None, description="Date de dernière modification")
