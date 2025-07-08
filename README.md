@@ -55,3 +55,4 @@ At the end the __speaker__ will be able to review the note and modify it by hand
   * Make possible to edit the notes 🟪
   * Make possible to delete the notes 🟪
 * Init the mongodb local docker 🟩
+* Init the fast api local docker 🟩
