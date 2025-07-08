@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class SpeakerNoteBase(BaseModel):
@@ -24,24 +24,21 @@ class SpeakerNoteUpdate(BaseModel):
 
 class SpeakerNote(SpeakerNoteBase):
     """Modèle complet pour une note avec ID"""
-    idNode: int = Field(..., description="Identifiant unique de la note")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Date de création")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Date de dernière modification")
+    id_note: int = Field(..., description="Identifiant unique de la note")
+    schema_version: str = Field(default="1.1.0", description="Version du schéma de données")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Date de création")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Date de dernière modification")
 
     class Config:
         from_attributes = True
         json_schema_extra = {
             "example": {
-                "idNode": 1,
+                "id_note": 1,
                 "title": "Ma première note",
                 "content": "Ceci est le contenu de ma note dictée vocalement",
                 "commands": ["save", "export"],
+                "schema_version": "1.1.0",
                 "created_at": "2025-07-08T10:30:00Z",
                 "updated_at": "2025-07-08T10:30:00Z"
             }
         }
-
-
-class SpeakerNoteResponse(SpeakerNote):
-    """Modèle de réponse pour l'API"""
-    pass

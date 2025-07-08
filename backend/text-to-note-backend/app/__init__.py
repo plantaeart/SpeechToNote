@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pymongo import MongoClient
+from datetime import datetime, timezone
 # Import configuration
 from .config import MONGO_URI, DATABASE_NAME, COLLECTIONS
+from .migrations.speaker_note_migrations import SpeakerNoteMigrations
 
 # Global variables to store db connection
 mongodb_client = None
@@ -35,6 +37,10 @@ async def app_lifespan(app):
             collections[collection_name] = database[collection_name]
         
         print(f"Connected to database: {DATABASE_NAME}")
+        
+        # Run migrations for speaker notes
+        if "SPEAKER_NOTES" in collections:
+            SpeakerNoteMigrations.run_migrations(collections["SPEAKER_NOTES"])
         
     except Exception as e:
         print(f"MongoDB connection failed: {e}")
