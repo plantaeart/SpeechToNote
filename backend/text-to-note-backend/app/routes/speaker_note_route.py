@@ -1,10 +1,7 @@
-from fastapi import APIRouter, HTTPException
-from bson import ObjectId
-from typing import Optional
+from fastapi import APIRouter
 from datetime import datetime
 from ..models.response.response_model import SNResponse
 from ..models.speaker_note.sn_request_model import SNRequest
-from ..models.speaker_note.speaker_note_model import SpeakerNote
 
 router_speaker_note = APIRouter(prefix="/speaker_notes", tags=["speaker_notes"])
 
