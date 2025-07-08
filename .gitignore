@@ -171,19 +171,10 @@ cython_debug/
 uvicorn.log
 
 # FastAPI configuration files
+config_dev.py
+config_release.py
+config_prod.py
 config.py
-config.json
-config.yaml
-config.yml
-settings.py
-settings.json
-settings.yaml
-settings.yml
-app_config.py
-**/config/local.py
-**/config/development.py
-**/config/staging.py
-**/config/production.py
 
 # Alembic (database migrations)
 alembic/versions/
