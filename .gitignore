@@ -170,6 +170,21 @@ cython_debug/
 # Uvicorn logs
 uvicorn.log
 
+# FastAPI configuration files
+config.py
+config.json
+config.yaml
+config.yml
+settings.py
+settings.json
+settings.yaml
+settings.yml
+app_config.py
+**/config/local.py
+**/config/development.py
+**/config/staging.py
+**/config/production.py
+
 # Alembic (database migrations)
 alembic/versions/
 !alembic/versions/.gitkeep
@@ -299,6 +314,12 @@ tmp/
 data/
 uploads/
 media/
+
+# MongoDB data persistence
+mongodb-data/
+**/mongodb-data/
+mongodb-data-local/
+**/mongodb-data-local/
 
 # Build artifacts
 build/
