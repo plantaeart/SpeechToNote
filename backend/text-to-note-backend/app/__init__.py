@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from pymongo import MongoClient
 from datetime import datetime, timezone
 # Import configuration
-from .config import MONGO_URI, DATABASE_NAME, COLLECTIONS
+from .config_dev import MONGO_URI, DATABASE_NAME, COLLECTIONS
 from .migrations.speaker_note_migrations import SpeakerNoteMigrations
 
 # Global variables to store db connection
