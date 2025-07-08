@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 from typing import List
-from .speaker_note_model import SpeakerNote, SpeakerNoteUpdate
+from .speaker_note_model import SpeakerNoteCreate, SpeakerNoteUpdate
 
-class SNRequest(BaseModel):
-    """Standardized request model for SpeechToNote API"""
-    data: List[SpeakerNote | SpeakerNoteUpdate]
+class SNCreateRequest(BaseModel):
+    """Request model for creating speaker notes"""
+    data: List[SpeakerNoteCreate]
     
     class Config:
         # Example schema for documentation
@@ -16,3 +16,21 @@ class SNRequest(BaseModel):
                 ]
             }
         }
+
+class SNUpdateRequest(BaseModel):
+    """Request model for updating speaker notes"""
+    data: List[SpeakerNoteUpdate]
+    
+    class Config:
+        # Example schema for documentation
+        schema_extra = {
+            "example": {
+                "data": [
+                    {"id_note": 1, "title": "Updated Meeting Notes"},
+                    {"id_note": 2, "content": "Updated content only"}
+                ]
+            }
+        }
+
+# Keep the original for backward compatibility if needed
+SNRequest = SNCreateRequest

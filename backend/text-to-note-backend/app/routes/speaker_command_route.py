@@ -1,13 +1,13 @@
 from fastapi import APIRouter
 from datetime import datetime
 from ..models.response.response_model import SNResponse
-from ..models.speaker_command.sc_request_model import SCRequest
+from ..models.speaker_command.sc_request_model import SCCreateRequest, SCUpdateRequest
 
 router_speaker_command = APIRouter(prefix="/speaker_commands", tags=["speaker_commands"])
 
 # Create a speaker_command
 @router_speaker_command.post("/", response_model=SNResponse)
-async def create_speaker_command(request: SCRequest):
+async def create_speaker_command(request: SCCreateRequest):
     """Create a new speaker command."""
     from app import get_collection
     collection = get_collection("COMMANDS")
@@ -25,6 +25,7 @@ async def create_speaker_command(request: SCRequest):
             next_id = (last_command["id_command"] + 1) if last_command and "id_command" in last_command else 1
             
             for speaker_command_create in request.data:
+                # No need to check required fields - Pydantic validates automatically
                 # Convert Pydantic model to dict for MongoDB
                 speaker_command_dump = speaker_command_create.model_dump()
                 
@@ -67,7 +68,7 @@ async def get_speaker_commands():
 
 # Update speaker commands
 @router_speaker_command.put("/", response_model=SNResponse)
-async def update_speaker_commands(request: SCRequest):
+async def update_speaker_commands(request: SCUpdateRequest):
     """Update multiple speaker commands."""
     from app import get_collection
     collection = get_collection("COMMANDS")
@@ -79,10 +80,7 @@ async def update_speaker_commands(request: SCRequest):
         if collection is not None:
             updated_commands = []
             for speaker_command_update in request.data:
-                # Check if id_command exists in the model
-                if not hasattr(speaker_command_update, 'id_command') or not speaker_command_update.id_command:
-                    return SNResponse.error("id_command is required for all speaker commands to update", 400)
-                
+                # id_command is guaranteed to exist because of SpeakerCommandUpdate model
                 id_command = speaker_command_update.id_command
                 
                 # Convert to dict and exclude None values and id_command
