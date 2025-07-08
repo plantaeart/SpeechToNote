@@ -21,6 +21,8 @@ At the end the __speaker__ will be able to review the note and modify it by hand
 * Uvicorn (https://www.uvicorn.org) - ASGI web server implementation for Python - version 0.32.0
 * Pymongo (https://pymongo.readthedocs.io/en/stable/) - A Python distribution containing tools for working with MongoDB - version 4.10.1
 * Pydantic (https://docs.pydantic.dev/latest/) - The most widely used data validation library for Python - version 2.9.2
+* httpx (https://www.python-httpx.org) - HTTPX is a fully featured HTTP client for Python 3, which provides sync and async APIs, and support for both HTTP/1.1 and HTTP/2 - version 0.28.1
+* pytest (https://docs.pytest.org/en/stable/) - The pytest framework makes it easy to write small, readable tests, and can scale to support complex functional testing for applications and libraries - version 8.4.1
 
 ### Frontend
 * VueJS (https://vuejs.org) - An approachable, performant and versatile framework for building web user interfaces - version 3.5.17
