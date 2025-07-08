@@ -1,20 +1,18 @@
 from pydantic import BaseModel
-from typing import Any, List
+from typing import List
+from .speaker_note_model import SpeakerNote
 
 class SNRequest(BaseModel):
     """Standardized request model for SpeechToNote API"""
-    data: List[Any]
+    data: List[SpeakerNote]
     
     class Config:
-        # Allow arbitrary types for the data field
-        arbitrary_types_allowed = True
-        
         # Example schema for documentation
         schema_extra = {
             "example": {
                 "data": [
-                    {"title": "Meeting Notes", "content": "Important discussion points..."},
-                    {"title": "Action Items", "content": "Follow up tasks..."}
+                    {"title": "Meeting Notes", "content": "Important discussion points...", "commands": ["save"]},
+                    {"title": "Action Items", "content": "Follow up tasks...", "commands": ["export"]}
                 ]
             }
         }
