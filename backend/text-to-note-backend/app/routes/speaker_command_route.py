@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from datetime import datetime
+from typing import List
 from ..models.response.response_model import SNResponse
-from ..models.speaker_command.sc_request_model import SCCreateRequest, SCUpdateRequest
+from ..models.speaker_command.sc_request_model import SCCreateRequest, SCUpdateRequest, SCDeleteByIdsRequest
 
 router_speaker_command = APIRouter(prefix="/speaker_commands", tags=["speaker_commands"])
 
@@ -105,6 +106,28 @@ async def update_speaker_commands(request: SCUpdateRequest):
         return SNResponse.error("No collection found", 500)
     except Exception as e:
         return SNResponse.error(f"Failed to update speaker commands: {str(e)}", 500)
+
+# Delete multiple speaker commands by IDs
+@router_speaker_command.delete("/ids", response_model=SNResponse)
+async def delete_speaker_commands_by_ids(request: SCDeleteByIdsRequest):
+    """Delete multiple speaker commands by their IDs."""
+    from app import get_collection
+    collection = get_collection("COMMANDS")
+    
+    if not request.ids_command:
+        return SNResponse.error("IDs array is required", 400)
+    
+    try:
+        if collection is not None:
+            result = collection.delete_many({"id_command": {"$in": request.ids_command}})
+            
+            return SNResponse.success(
+                {"deleted_count": result.deleted_count}, 
+                f"Speaker commands deleted successfully. {result.deleted_count} commands removed."
+            )
+        return SNResponse.error("No collection found", 500)
+    except Exception as e:
+        return SNResponse.error(f"Failed to delete speaker commands: {str(e)}", 500)
 
 # Delete a specific speaker command
 @router_speaker_command.delete("/{id_command}", response_model=SNResponse)

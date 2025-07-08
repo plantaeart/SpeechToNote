@@ -1,7 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from datetime import datetime
+from typing import List
 from ..models.response.response_model import SNResponse
-from ..models.speaker_note.sn_request_model import SNCreateRequest, SNUpdateRequest
+from ..models.speaker_note.sn_request_model import SNCreateRequest, SNUpdateRequest, SNDeleteByIdsRequest
 
 router_speaker_note = APIRouter(prefix="/speaker_notes", tags=["speaker_notes"])
 
@@ -108,6 +109,28 @@ async def update_speaker_notes(request: SNUpdateRequest):
         return SNResponse.error("No collection found", 500)
     except Exception as e:
         return SNResponse.error(f"Failed to update speaker notes: {str(e)}", 500)
+
+# Delete multiple speaker notes by IDs
+@router_speaker_note.delete("/ids", response_model=SNResponse)
+async def delete_speaker_notes_by_ids(request: SNDeleteByIdsRequest):
+    """Delete multiple speaker notes by their IDs."""
+    from app import get_collection
+    collection = get_collection("SPEAKER_NOTES")
+    
+    if not request.ids_note:
+        return SNResponse.error("ids_note array is required", 400)
+    
+    try:
+        if collection is not None:
+            result = collection.delete_many({"id_note": {"$in": request.ids_note}})
+            
+            return SNResponse.success(
+                {"deleted_count": result.deleted_count}, 
+                f"Speaker notes with ids {request.ids_note} deleted successfully. {result.deleted_count} notes removed."
+            )
+        return SNResponse.error("No collection found", 500)
+    except Exception as e:
+        return SNResponse.error(f"Failed to delete speaker notes: {str(e)}", 500)
 
 # Delete a specific speaker note
 @router_speaker_note.delete("/{id_note}", response_model=SNResponse)

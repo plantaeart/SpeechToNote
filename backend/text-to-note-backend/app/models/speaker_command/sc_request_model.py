@@ -32,5 +32,16 @@ class SCUpdateRequest(BaseModel):
             }
         }
 
+class SCDeleteByIdsRequest(BaseModel):
+    """Request model for deleting speaker commands by IDs"""
+    ids_command: List[int]
+    
+    class Config:
+        # Example schema for documentation
+        schema_extra = {
+            "example": {
+                "ids_command": [1, 2, 3, 4]
+            }
+        }
 # Keep the original for backward compatibility if needed
 SCRequest = SCCreateRequest
