@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from bson import ObjectId
 from typing import Optional
 from datetime import datetime
-from ..models.speaker_note.sn_response_model import SNResponse
+from ..models.response.response_model import SNResponse
 from ..models.speaker_note.sn_request_model import SNRequest
 from ..models.speaker_note.speaker_note_model import SpeakerNote
 
@@ -40,7 +40,7 @@ async def create_speaker_note(request: SNRequest):
                 # Add auto-incremented id_note and timestamps (local time)
                 current_time = datetime.now()  # Use local timezone
                 speaker_note_dump["id_note"] = next_id
-                speaker_note_dump["schema_version"] = "1.1.0"
+                speaker_note_dump["schema_version"] = "1.0.0"
                 speaker_note_dump["created_at"] = current_time
                 speaker_note_dump["updated_at"] = current_time
                 
@@ -94,9 +94,9 @@ async def update_speaker_notes(request: SNRequest):
                 
                 id_note = speaker_note_update.id_note
                 
-                # Convert to dict and exclude id_note from update
-                update_data = speaker_note_update.model_dump(exclude={'id_note'})
-                update_data["updated_at"] = datetime.now()  # Use local timezone
+                # Convert to dict and exclude None values and id_note
+                update_data = {k: v for k, v in speaker_note_update.model_dump(exclude={'id_note'}).items() if v is not None}
+                update_data["updated_at"] = datetime.now()  # Always update timestamp
                 
                 result = collection.update_one(
                     {"id_note": id_note},

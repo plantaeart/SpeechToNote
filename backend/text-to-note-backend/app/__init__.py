@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 # Import configuration
 from .config_dev import MONGO_URI, DATABASE_NAME, COLLECTIONS
 from .migrations.speaker_note_migrations import SpeakerNoteMigrations
+from .migrations.speaker_command_migrations import SpeakerCommandMigrations
 
 # Global variables to store db connection
 mongodb_client = None
@@ -41,7 +42,11 @@ async def app_lifespan(app):
         # Run migrations for speaker notes
         if "SPEAKER_NOTES" in collections:
             SpeakerNoteMigrations.run_migrations(collections["SPEAKER_NOTES"])
-        
+
+        # Run migrations for commands
+        if "COMMANDS" in collections:
+            SpeakerCommandMigrations.run_migrations(collections["COMMANDS"])
+
     except Exception as e:
         print(f"MongoDB connection failed: {e}")
         raise
@@ -70,6 +75,8 @@ def get_all_collections():
 
 # Register routes after defining helper functions
 from .routes.speaker_note_route import router_speaker_note 
+from .routes.speaker_command_route import router_speaker_command
 app.include_router(router_speaker_note)
+app.include_router(router_speaker_command)
 
 __all__ = ["app", "get_database", "get_collection", "get_all_collections"]

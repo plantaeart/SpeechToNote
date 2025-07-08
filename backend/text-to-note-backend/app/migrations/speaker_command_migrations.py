@@ -1,13 +1,13 @@
 from datetime import datetime
 from typing import Dict, Any
 
-class SpeakerNoteMigrations:
-    """Handle speaker note schema migrations"""
+class SpeakerCommandMigrations:
+    """Handle speaker command schema migrations"""
     
     @staticmethod
     def get_current_schema_version() -> str:
         """Return current schema version"""
-        return "1.0.0"  # Updated to 1.0.0 as default
+        return "1.0.0"  # Update this when you change the model
     
     @staticmethod
     def migrate_to_v1_0_0(collection, doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -15,8 +15,8 @@ class SpeakerNoteMigrations:
         update_fields = {}
         
         # Add missing fields
-        if "commands" not in doc:
-            update_fields["commands"] = []
+        if "command_description" not in doc:
+            update_fields["command_description"] = None
         
         if "created_at" not in doc:
             update_fields["created_at"] = datetime.now()
@@ -33,7 +33,7 @@ class SpeakerNoteMigrations:
     def run_migrations(collection):
         """Run all necessary migrations"""
         try:
-            current_version = SpeakerNoteMigrations.get_current_schema_version()
+            current_version = SpeakerCommandMigrations.get_current_schema_version()
             
             # Find documents that need migration
             documents_to_migrate = list(collection.find({
@@ -50,7 +50,7 @@ class SpeakerNoteMigrations:
                 
                 # Apply migrations based on current version
                 if doc_version != current_version:
-                    update_fields = SpeakerNoteMigrations.migrate_to_v1_0_0(collection, doc)
+                    update_fields = SpeakerCommandMigrations.migrate_to_v1_0_0(collection, doc)
                     
                     if update_fields:
                         collection.update_one(
@@ -60,10 +60,10 @@ class SpeakerNoteMigrations:
                         updated_count += 1
             
             if updated_count > 0:
-                print(f"Successfully migrated {updated_count} speaker notes to version {current_version}")
+                print(f"Successfully migrated {updated_count} speaker commands to version {current_version}")
             else:
-                print(f"All speaker notes are already at version {current_version}")
+                print(f"All speaker commands are already at version {current_version}")
                 
         except Exception as e:
-            print(f"Migration error: {e}")
+            print(f"Speaker command migration error: {e}")
             raise
