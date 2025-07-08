@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from bson import ObjectId
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime
 from ..models.speaker_note.sn_response_model import SNResponse
 from ..models.speaker_note.sn_request_model import SNRequest
 from ..models.speaker_note.speaker_note_model import SpeakerNote
@@ -33,26 +33,22 @@ async def create_speaker_note(request: SNRequest):
             last_note = collection.find_one({}, sort=[("id_note", -1)])
             next_id = (last_note["id_note"] + 1) if last_note and "id_note" in last_note else 1
             
-            for speaker_note in request.data:
-                if not speaker_note.get("title") or not speaker_note.get("content"):
-                    return SNResponse.error("Title and content are required for all speaker notes", 400)
+            for speaker_note_create in request.data:
+                # Convert Pydantic model to dict for MongoDB
+                speaker_note_dump = speaker_note_create.model_dump()
                 
-                # Add auto-incremented id_note and timestamps
-                current_time = datetime.now(timezone.utc)
-                speaker_note["id_note"] = next_id
-                speaker_note["schema_version"] = "1.1.0"
-                speaker_note["created_at"] = current_time
-                speaker_note["updated_at"] = current_time
-                
-                # Set default commands if not provided
-                if "commands" not in speaker_note:
-                    speaker_note["commands"] = []
+                # Add auto-incremented id_note and timestamps (local time)
+                current_time = datetime.now()  # Use local timezone
+                speaker_note_dump["id_note"] = next_id
+                speaker_note_dump["schema_version"] = "1.1.0"
+                speaker_note_dump["created_at"] = current_time
+                speaker_note_dump["updated_at"] = current_time
                 
                 next_id += 1
                 
-                result = collection.insert_one(speaker_note)
-                speaker_note["_id"] = str(result.inserted_id)
-                created_notes.append(speaker_note)
+                result = collection.insert_one(speaker_note_dump)
+                speaker_note_dump["_id"] = str(result.inserted_id)
+                created_notes.append(speaker_note_dump)
             
             return SNResponse.success(created_notes, "Speaker notes created successfully", 201)
         return SNResponse.error("No collection found", 500)
@@ -91,15 +87,16 @@ async def update_speaker_notes(request: SNRequest):
     try:
         if collection is not None:
             updated_notes = []
-            for speaker_note in request.data:
-                if not speaker_note.get("id_note"):
+            for speaker_note_update in request.data:
+                # Check if id_note exists in the model
+                if not hasattr(speaker_note_update, 'id_note') or not speaker_note_update.id_note:
                     return SNResponse.error("id_note is required for all speaker notes to update", 400)
                 
-                id_note = speaker_note.get("id_note")
+                id_note = speaker_note_update.id_note
                 
-                # Remove id_note from the update data to avoid overwriting it
-                update_data = {k: v for k, v in speaker_note.items() if k != "id_note"}
-                update_data["updated_at"] = datetime.now(timezone.utc)
+                # Convert to dict and exclude id_note from update
+                update_data = speaker_note_update.model_dump(exclude={'id_note'})
+                update_data["updated_at"] = datetime.now()  # Use local timezone
                 
                 result = collection.update_one(
                     {"id_note": id_note},
@@ -133,8 +130,8 @@ async def delete_speaker_note(id_note: int):
             
             if result.deleted_count == 0:
                 return SNResponse.error("Speaker note not found", 404)
-            
-            return SNResponse.success({"deleted_id_note": id_note}, "Speaker note deleted successfully")
+
+            return SNResponse.success({"deleted_id_note": id_note}, f"Speaker note with id {id_note} deleted successfully")
         return SNResponse.error("No collection found", 500)
     except Exception as e:
         return SNResponse.error(f"Failed to delete speaker note: {str(e)}", 500)
