@@ -27,9 +27,25 @@ At the end the __speaker__ will be able to review the note and modify it by hand
 * Pinia (https://pinia.vuejs.org/introduction.html) - A store library for Vue, it allows you to share a state across components/pages - version 3.0.3
 
 ### DB
-* MongoDB official docker image (https://hub.docker.com/_/mongo) - MongoDB is a free and open-source cross-platform document-oriented database⁠ program. Classified as a NoSQL⁠ database program - version 6.0.25-rc0-windowsservercore-ltsc2025
+* MongoDB official docker image (https://hub.docker.com/_/mongo) - MongoDB is a free and open-source cross-platform document-oriented database⁠ program. Classified as a NoSQL⁠ database program - version 6.0
 * DuckDB (https://duckdb.org) - DuckDB is a fast analitycal database system - version 1.3.1
 
 ### Contenerization
 * Kubernetes
 * Docker
+
+## Steps 🪜
+🟩 : Done 🟧 : In progress 🟪 : To do
+
+* Create the project
+* Init the FastAPI backend 🟩
+  * Create the speaker note model 🟩
+  * Create the spaker note routes 🟩
+  * Create the speaker command model 🟩
+  * Create the speaker command routes 🟩
+  * Test it manually 🟩
+  * Create automatic tests 🟧
+* Init the VueJS frontend (with Pinia) 🟩
+  * Create the models services 🟪
+  * Create the pinia stores 🟪
+* Init the mongodb local docker 🟩
