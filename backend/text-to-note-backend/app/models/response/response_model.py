@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Any, Optional
 
 class SNResponse(BaseModel):
-    """Standardized response model for SpeechToNote API"""
+    """Standardized response model for Speaker Command API"""
     data: Any = None
     status_code: int
     message: str

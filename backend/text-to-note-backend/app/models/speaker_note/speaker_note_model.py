@@ -10,22 +10,17 @@ class SpeakerNoteBase(BaseModel):
     commands: List[str] = Field(default=[], description="Liste des commandes associées")
 
 
-class SpeakerNoteCreate(SpeakerNoteBase):
-    """Modèle pour la création d'une note"""
-    pass
-
-
 class SpeakerNoteUpdate(BaseModel):
     """Modèle pour la mise à jour d'une note"""
+    id_note: int = Field(..., description="Identifiant unique de la note")
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     content: Optional[str] = None
     commands: Optional[List[str]] = None
 
-
 class SpeakerNote(SpeakerNoteBase):
     """Modèle complet pour une note avec ID"""
     id_note: Optional[int] = Field(None, description="Identifiant unique de la note")
-    schema_version: str = Field(default="1.1.0", description="Version du schéma de données")
+    schema_version: Optional[str] = Field(default="1.1.0", description="Version du schéma de données")
     created_at: Optional[datetime] = Field(None, description="Date de création")
     updated_at: Optional[datetime] = Field(None, description="Date de dernière modification")
 
