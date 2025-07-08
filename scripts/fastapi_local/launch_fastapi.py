@@ -21,7 +21,6 @@ cmd = [
 
 print("🚀 Lancement de l'API FastAPI en local")
 print(f"📂 Répertoire de travail: {backend_dir}")
-print(f"🔧 Commande: {' '.join(cmd)}")
 print("🌐 URL: http://127.0.0.1:8000")
 print("📖 Documentation: http://127.0.0.1:8000/docs")
 

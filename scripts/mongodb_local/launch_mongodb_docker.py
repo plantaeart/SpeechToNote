@@ -13,6 +13,5 @@ cmd = [
 ]
 
 print("Lancement du conteneur MongoDB local avec persistance...")
-print(cmd)
 subprocess.run(cmd, check=True)
 print("MongoDB local lancé sur le port 27017 avec persistance dans 'mongodb-data/'")
