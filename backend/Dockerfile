@@ -13,7 +13,7 @@ COPY . .
 WORKDIR /app/text-to-note-backend
 
 # Set environment variable to use dev config
-ENV CONFIG_ENV=dev
+ENV CONFIG_ENV=config_local_docker_env
 
 # Expose port
 EXPOSE 8000
