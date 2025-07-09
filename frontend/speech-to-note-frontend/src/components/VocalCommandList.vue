@@ -4,7 +4,6 @@ import { ref, onMounted, computed, nextTick } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Message from 'primevue/message'
-import ProgressSpinner from 'primevue/progressspinner'
 import Tag from 'primevue/tag'
 import Badge from 'primevue/badge'
 import Divider from 'primevue/divider'
@@ -14,7 +13,7 @@ import { IS_DEBUG } from '@/config/env.current'
 import { formatDate } from '@/utils/dateUtils'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
-import Dialog from 'primevue/dialog'
+import FloatingLoader from './FloatingLoader.vue'
 
 const commandStore = useSpeakerCommandStore()
 const confirm = useConfirm()
@@ -29,10 +28,9 @@ const hasCommands = computed(() => commandStore.hasCommands)
 // Local state for refresh functionality
 const refreshing = ref(false)
 
-// Local state for update functionality
-const updateDialogVisible = ref(false)
-const updateCommandData = ref({
-  id_command: 0,
+// Local state for inline editing
+const editingCommand = ref<number | null>(null)
+const editCommandData = ref({
   command_name: '',
   command_vocal: '',
   command_description: '',
@@ -77,30 +75,45 @@ const deleteCommand = async (event: Event, id_command: number, commandName: stri
   })
 }
 
-const openUpdateDialog = (command: any) => {
+const startEdit = (command: any) => {
   // Save current scroll position
   scrollPosition.value = window.scrollY
 
-  updateCommandData.value = {
-    id_command: command.id_command,
+  editingCommand.value = command.id_command
+  editCommandData.value = {
     command_name: command.command_name,
     command_vocal: command.command_vocal,
     command_description: command.command_description || '',
   }
-  updateDialogVisible.value = true
 }
 
-const updateCommand = async () => {
-  await commandStore.updateCommandFromStore(updateCommandData.value.id_command, {
-    command_name: updateCommandData.value.command_name,
-    command_vocal: updateCommandData.value.command_vocal,
-    command_description: updateCommandData.value.command_description,
-  })
-  updateDialogVisible.value = false
+const cancelEdit = () => {
+  editingCommand.value = null
+  editCommandData.value = {
+    command_name: '',
+    command_vocal: '',
+    command_description: '',
+  }
 
   // Restore scroll position after DOM update
-  await nextTick()
-  window.scrollTo(0, scrollPosition.value)
+  nextTick(() => {
+    window.scrollTo(0, scrollPosition.value)
+  })
+}
+
+const saveEdit = async () => {
+  if (editingCommand.value) {
+    await commandStore.updateCommandFromStore(editingCommand.value, {
+      command_name: editCommandData.value.command_name,
+      command_vocal: editCommandData.value.command_vocal,
+      command_description: editCommandData.value.command_description,
+    })
+    editingCommand.value = null
+
+    // Restore scroll position after DOM update
+    await nextTick()
+    window.scrollTo(0, scrollPosition.value)
+  }
 }
 </script>
 
@@ -142,14 +155,8 @@ const updateCommand = async () => {
       {{ error }}
     </Message>
 
-    <!-- Loading State -->
-    <div v-if="isLoading && !refreshing" class="loading-container">
-      <ProgressSpinner />
-      <p class="loading-text">Chargement des commandes...</p>
-    </div>
-
-    <!-- Empty State -->
-    <Card v-else-if="!hasCommands && !isLoading" class="empty-state-card">
+    <!-- Remove the loading container and show empty state when no commands -->
+    <Card v-if="!hasCommands && !isLoading" class="empty-state-card">
       <template #content>
         <div class="empty-state">
           <i class="pi pi-microphone empty-icon"></i>
@@ -165,38 +172,69 @@ const updateCommand = async () => {
       </template>
     </Card>
 
-    <!-- Commands Grid -->
-    <div v-else class="commands-grid">
+    <!-- Commands Grid - always show when we have commands -->
+    <div v-if="hasCommands" class="commands-grid">
       <Card
         v-for="command in commands.sort((a, b) => a.id_command - b.id_command)"
         :key="command.id_command"
         class="command-card"
+        :class="{ editing: editingCommand === command.id_command }"
       >
         <template #header>
           <div class="command-header">
             <div class="command-name-section">
               <i class="pi pi-volume-up command-icon"></i>
-              <h3>{{ command.command_name }}</h3>
+              <h3 v-if="editingCommand !== command.id_command">{{ command.command_name }}</h3>
+              <InputText
+                v-else
+                v-model="editCommandData.command_name"
+                class="edit-title-input"
+                placeholder="Nom de la commande"
+              />
             </div>
             <div class="command-actions">
-              <Button
-                @click="openUpdateDialog(command)"
-                icon="pi pi-pencil"
-                severity="info"
-                text
-                rounded
-                size="medium"
-                :title="'Modifier'"
-              />
-              <Button
-                @click="(event) => deleteCommand(event, command.id_command, command.command_name)"
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                size="medium"
-                :title="'Supprimer'"
-              />
+              <!-- Edit Mode Actions -->
+              <template v-if="editingCommand === command.id_command">
+                <Button
+                  @click="saveEdit"
+                  icon="pi pi-check"
+                  severity="success"
+                  text
+                  rounded
+                  size="medium"
+                  :title="'Sauvegarder'"
+                />
+                <Button
+                  @click="cancelEdit"
+                  icon="pi pi-times"
+                  severity="secondary"
+                  text
+                  rounded
+                  size="medium"
+                  :title="'Annuler'"
+                />
+              </template>
+              <!-- Normal Mode Actions -->
+              <template v-else>
+                <Button
+                  @click="startEdit(command)"
+                  icon="pi pi-pencil"
+                  severity="info"
+                  text
+                  rounded
+                  size="medium"
+                  :title="'Modifier'"
+                />
+                <Button
+                  @click="(event) => deleteCommand(event, command.id_command, command.command_name)"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  text
+                  rounded
+                  size="medium"
+                  :title="'Supprimer'"
+                />
+              </template>
             </div>
           </div>
         </template>
@@ -209,16 +247,45 @@ const updateCommand = async () => {
                 <i class="pi pi-comment"></i>
                 Déclencheur vocal:
               </label>
-              <Tag :value="command.command_vocal" severity="info" class="vocal-tag" />
+              <Tag
+                v-if="editingCommand !== command.id_command"
+                :value="command.command_vocal"
+                severity="info"
+                class="vocal-tag"
+              />
+              <InputText
+                v-else
+                v-model="editCommandData.command_vocal"
+                class="edit-vocal-input"
+                placeholder="Déclencheur vocal"
+              />
             </div>
 
             <!-- Description -->
-            <div v-if="command.command_description" class="description-section">
+            <div class="description-section">
               <label class="field-label">
                 <i class="pi pi-info-circle"></i>
                 Description:
               </label>
-              <p class="description-text">{{ command.command_description }}</p>
+              <p
+                v-if="editingCommand !== command.id_command && command.command_description"
+                class="description-text"
+              >
+                {{ command.command_description }}
+              </p>
+              <p
+                v-else-if="editingCommand !== command.id_command && !command.command_description"
+                class="description-text empty"
+              >
+                Aucune description
+              </p>
+              <Textarea
+                v-else
+                v-model="editCommandData.command_description"
+                rows="3"
+                class="edit-description-input"
+                placeholder="Description (optionnelle)"
+              />
             </div>
 
             <!-- Metadata -->
@@ -257,45 +324,13 @@ const updateCommand = async () => {
       </Card>
     </div>
 
-    <!-- Update Dialog -->
-    <Dialog
-      v-model:visible="updateDialogVisible"
-      modal
-      header="Modifier la commande vocale"
-      :style="{ width: '500px' }"
-    >
-      <div class="update-form">
-        <div class="field">
-          <label for="command_name">Nom de la commande:</label>
-          <InputText id="command_name" v-model="updateCommandData.command_name" class="w-full" />
-        </div>
-
-        <div class="field">
-          <label for="command_vocal">Déclencheur vocal:</label>
-          <InputText id="command_vocal" v-model="updateCommandData.command_vocal" class="w-full" />
-        </div>
-
-        <div class="field">
-          <label for="command_description">Description:</label>
-          <Textarea
-            id="command_description"
-            v-model="updateCommandData.command_description"
-            rows="3"
-            class="w-full"
-          />
-        </div>
-      </div>
-
-      <template #footer>
-        <Button
-          label="Annuler"
-          icon="pi pi-times"
-          @click="updateDialogVisible = false"
-          class="p-button-text"
-        />
-        <Button label="Mettre à jour" icon="pi pi-check" @click="updateCommand" autofocus />
-      </template>
-    </Dialog>
+    <!-- Floating loader component -->
+    <FloatingLoader
+      :visible="isLoading || refreshing"
+      position="bottom-right"
+      size="medium"
+      message="Chargement..."
+    />
 
     <!-- ConfirmPopup component -->
     <ConfirmPopup />
@@ -337,19 +372,6 @@ const updateCommand = async () => {
 
 .error-message {
   margin-bottom: 1rem;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 3rem;
-  gap: 1rem;
-}
-
-.loading-text {
-  margin: 0;
-  color: var(--text-color-secondary);
 }
 
 .empty-state-card {
@@ -515,21 +537,43 @@ const updateCommand = async () => {
   font-weight: 500;
 }
 
-.update-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.editing {
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.3);
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.field label {
+.edit-title-input {
+  flex: 1;
+  font-size: 1.25rem;
   font-weight: 600;
-  color: var(--text-color);
+  width: 100%;
+}
+
+.edit-vocal-input,
+.edit-description-input {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.description-text.empty {
+  color: var(--text-color-secondary);
+  font-style: italic;
+}
+
+.command-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* Make sure input fields are properly styled */
+.edit-title-input:deep(.p-inputtext) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+}
+
+.edit-vocal-input:deep(.p-inputtext) {
+  font-family: 'Courier New', monospace;
 }
 
 /* Responsive Design */
