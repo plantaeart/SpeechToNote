@@ -163,9 +163,25 @@ def main():
     
     if success:
         print(f"\n🎉 Construction terminée avec succès!")
-        print(f"💡 Pour tester l'image:")
+        
+        # Ask if user wants to run the image
+        run_container = input("\n❓ Voulez-vous lancer cette image dans un conteneur maintenant? (y/N): ").strip().lower()
+        
+        if run_container in ['y', 'yes']:
+            print("\n🚀 Lancement du script de conteneur...")
+            
+            # Get the run script path
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            run_script_path = os.path.join(script_dir, "run_fastapi_image_docker.py")
+            
+            try:
+                # Call the run script
+                subprocess.run([sys.executable, run_script_path], check=False)
+            except Exception as e:
+                print(f"\n❌ Erreur lors du lancement du script: {e}")
+        
+        print(f"\n💡 Commandes utiles:")
         print(f"   docker run -p 8000:8000 speechtonote:{tag}")
-        print(f"💡 Pour pousser l'image:")
         print(f"   docker tag speechtonote:{tag} your-registry/speechtonote:{tag}")
         print(f"   docker push your-registry/speechtonote:{tag}")
     else:
