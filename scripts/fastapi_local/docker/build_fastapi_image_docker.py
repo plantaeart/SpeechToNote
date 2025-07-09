@@ -105,7 +105,7 @@ def main():
         # Try alternative paths
         alternative_paths = [
             os.path.join(project_root, "backend", "Dockerfile"),
-            os.path.join(project_root, "backend", "text-to-note-backend", "Dockerfile"),
+            os.path.join(project_root, "backend", "speech-to-note-backend", "Dockerfile"),
             os.path.join(script_dir, "..", "..", "backend", "Dockerfile")
         ]
         

@@ -2,9 +2,9 @@ import subprocess
 import os
 import sys
 
-# Obtenir le chemin vers le dossier backend/text-to-note-backend
+# Obtenir le chemin vers le dossier backend/speech-to-note-backend
 script_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.join(script_dir, "..", "..", "backend", "text-to-note-backend")
+backend_dir = os.path.join(script_dir, "..", "..", "backend", "speech-to-note-backend")
 backend_dir = os.path.abspath(backend_dir)
 
 print(f"📁 Répertoire backend: {backend_dir}")
