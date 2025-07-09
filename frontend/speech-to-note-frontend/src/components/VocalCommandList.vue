@@ -36,6 +36,26 @@ const editCommandData = ref({
   command_description: '',
 })
 
+// Local state for creating new commands
+const creatingCommand = ref(false)
+const createCommandData = ref({
+  command_name: '',
+  command_vocal: '',
+  command_description: '',
+})
+
+// Validation state
+const createValidationErrors = ref({
+  command_name: false,
+  command_vocal: false,
+})
+
+// Validation state for update
+const updateValidationErrors = ref({
+  command_name: false,
+  command_vocal: false,
+})
+
 // Scroll position preservation
 const scrollPosition = ref(0)
 
@@ -87,6 +107,27 @@ const startEdit = (command: any) => {
   }
 }
 
+const saveEdit = async () => {
+  if (editingCommand.value) {
+    // Validate required fields
+    updateValidationErrors.value.command_name = !editCommandData.value.command_name.trim()
+    updateValidationErrors.value.command_vocal = !editCommandData.value.command_vocal.trim()
+
+    if (!updateValidationErrors.value.command_name && !updateValidationErrors.value.command_vocal) {
+      await commandStore.updateCommandFromStore(editingCommand.value, {
+        command_name: editCommandData.value.command_name,
+        command_vocal: editCommandData.value.command_vocal,
+        command_description: editCommandData.value.command_description,
+      })
+      editingCommand.value = null
+
+      // Restore scroll position after DOM update
+      await nextTick()
+      window.scrollTo(0, scrollPosition.value)
+    }
+  }
+}
+
 const cancelEdit = () => {
   editingCommand.value = null
   editCommandData.value = {
@@ -94,6 +135,9 @@ const cancelEdit = () => {
     command_vocal: '',
     command_description: '',
   }
+  // Reset validation errors
+  updateValidationErrors.value.command_name = false
+  updateValidationErrors.value.command_vocal = false
 
   // Restore scroll position after DOM update
   nextTick(() => {
@@ -101,19 +145,48 @@ const cancelEdit = () => {
   })
 }
 
-const saveEdit = async () => {
-  if (editingCommand.value) {
-    await commandStore.updateCommandFromStore(editingCommand.value, {
-      command_name: editCommandData.value.command_name,
-      command_vocal: editCommandData.value.command_vocal,
-      command_description: editCommandData.value.command_description,
-    })
-    editingCommand.value = null
+const startCreate = () => {
+  scrollPosition.value = window.scrollY
+  creatingCommand.value = true
+  createCommandData.value = {
+    command_name: '',
+    command_vocal: '',
+    command_description: '',
+  }
+}
 
-    // Restore scroll position after DOM update
+const saveCreate = async () => {
+  // Validate required fields
+  createValidationErrors.value.command_name = !createCommandData.value.command_name.trim()
+  createValidationErrors.value.command_vocal = !createCommandData.value.command_vocal.trim()
+
+  if (!createValidationErrors.value.command_name && !createValidationErrors.value.command_vocal) {
+    await commandStore.createCommandFromStore(
+      createCommandData.value.command_name,
+      createCommandData.value.command_vocal,
+      createCommandData.value.command_description,
+    )
+    creatingCommand.value = false
+
     await nextTick()
     window.scrollTo(0, scrollPosition.value)
   }
+}
+
+const cancelCreate = () => {
+  creatingCommand.value = false
+  createCommandData.value = {
+    command_name: '',
+    command_vocal: '',
+    command_description: '',
+  }
+  // Reset validation errors
+  createValidationErrors.value.command_name = false
+  createValidationErrors.value.command_vocal = false
+
+  nextTick(() => {
+    window.scrollTo(0, scrollPosition.value)
+  })
 }
 </script>
 
@@ -155,28 +228,21 @@ const saveEdit = async () => {
       {{ error }}
     </Message>
 
-    <!-- Empty state when no commands -->
-    <Card v-if="!hasCommands && !isLoading" class="empty-state-card">
-      <template #content>
-        <div class="empty-state">
-          <i class="pi pi-microphone empty-icon"></i>
-          <h3>Aucune commande vocale</h3>
-          <div v-if="!hasError">
-            <p>Créez votre première commande vocale pour commencer.</p>
-            <Button
-              icon="pi pi-plus"
-              label="Créer une commande"
-              severity="success"
-              class="create-btn"
-            />
-          </div>
-        </div>
-      </template>
-    </Card>
-
     <!-- Commands Grid - always show when we have commands -->
-    <div v-if="hasCommands" class="commands-grid">
+    <div class="commands-grid">
+      <!-- Empty state when no commands -->
+      <Card v-if="!hasCommands && !isLoading" class="empty-state-card">
+        <template #content>
+          <div class="empty-state">
+            <i class="pi pi-microphone empty-icon"></i>
+            <h3>Aucune commande vocale</h3>
+          </div>
+        </template>
+      </Card>
+
+      <!-- Existing Commands -->
       <Card
+        v-if="hasCommands"
         v-for="command in commands.sort((a, b) => a.id_command - b.id_command)"
         :key="command.id_command"
         class="command-card"
@@ -192,6 +258,7 @@ const saveEdit = async () => {
                 v-model="editCommandData.command_name"
                 class="edit-title-input"
                 placeholder="Nom de la commande"
+                :invalid="updateValidationErrors.command_name"
               />
             </div>
             <div class="command-actions">
@@ -260,6 +327,7 @@ const saveEdit = async () => {
                 v-model="editCommandData.command_vocal"
                 class="edit-vocal-input"
                 placeholder="Déclencheur vocal"
+                :invalid="updateValidationErrors.command_vocal"
               />
             </div>
 
@@ -319,6 +387,90 @@ const saveEdit = async () => {
                     <span class="meta-value">{{ formatDate(command.updated_at) }}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </Card>
+
+      <!-- Create Command Card -->
+      <Card class="command-card create-card" :class="{ editing: creatingCommand }">
+        <template #header>
+          <div class="command-header">
+            <div class="command-name-section">
+              <InputText
+                v-if="creatingCommand"
+                v-model="createCommandData.command_name"
+                class="edit-title-input"
+                placeholder="Nom de la commande"
+                :invalid="createValidationErrors.command_name"
+              />
+            </div>
+            <div class="command-actions">
+              <!-- Create Mode Actions -->
+              <template v-if="creatingCommand">
+                <Button
+                  @click="saveCreate"
+                  icon="pi pi-check"
+                  severity="success"
+                  text
+                  rounded
+                  size="medium"
+                  :title="'Créer'"
+                />
+                <Button
+                  @click="cancelCreate"
+                  icon="pi pi-times"
+                  severity="secondary"
+                  text
+                  rounded
+                  size="medium"
+                  :title="'Annuler'"
+                />
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <template #content>
+          <div class="command-content">
+            <div v-if="!creatingCommand" class="create-button-content">
+              <Button
+                @click="startCreate"
+                icon="pi pi-plus"
+                label="Créer une commande"
+                severity="success"
+                outlined
+                class="create-button-display"
+              />
+            </div>
+            <div v-else>
+              <!-- Vocal Trigger -->
+              <div class="vocal-trigger-section">
+                <label class="field-label">
+                  <i class="pi pi-comment"></i>
+                  Déclencheur vocal:
+                </label>
+                <InputText
+                  v-model="createCommandData.command_vocal"
+                  class="edit-vocal-input"
+                  placeholder="Déclencheur vocal"
+                  :invalid="createValidationErrors.command_vocal"
+                />
+              </div>
+
+              <!-- Description -->
+              <div class="description-section">
+                <label class="field-label">
+                  <i class="pi pi-info-circle"></i>
+                  Description:
+                </label>
+                <Textarea
+                  v-model="createCommandData.command_description"
+                  rows="3"
+                  class="edit-description-input"
+                  placeholder="Description (optionnelle)"
+                />
               </div>
             </div>
           </div>
@@ -565,6 +717,30 @@ const saveEdit = async () => {
 .command-actions {
   display: flex;
   gap: 0.25rem;
+}
+
+.create-card {
+  border: 2px dashed var(--surface-border);
+  background: var(--surface-50);
+}
+
+.create-card:hover {
+  border-color: var(--primary-color);
+  background: var(--surface-100);
+}
+
+.create-button-display {
+  width: 100%;
+  min-height: 15vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  font-size: 1rem;
+}
+
+.create-button-content {
+  text-align: center;
 }
 
 /* Make sure input fields are properly styled */
