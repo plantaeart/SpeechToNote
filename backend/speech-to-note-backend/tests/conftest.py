@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pymongo import MongoClient
 from app import app
-from app.config_local_env import MONGO_URI, DATABASE_NAME
+from app.configs.config_local_env import MONGO_URI, DATABASE_NAME
 
 # Test database configuration - USE A COMPLETELY SEPARATE DATABASE
 TEST_DATABASE_NAME = f"{DATABASE_NAME}_test"
