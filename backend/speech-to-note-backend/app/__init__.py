@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from datetime import datetime, timezone
 import sys
@@ -13,6 +14,7 @@ print("="*60, flush=True)
 from app.configs.config import MONGO_URI, DATABASE_NAME, COLLECTIONS
 from .migrations.speaker_note_migrations import SpeakerNoteMigrations
 from .migrations.speaker_command_migrations import SpeakerCommandMigrations
+from .config_cors import CORS_CONFIG
 
 print(f"[STARTUP] 📊 MongoDB URI: {MONGO_URI}", flush=True)
 print(f"[STARTUP] 📊 Database: {DATABASE_NAME}", flush=True)
@@ -78,7 +80,20 @@ async def app_lifespan(app):
         print(f"[SHUTDOWN] ⚠️ Error closing MongoDB connection: {e}", flush=True)
 
 # Initialize FastAPI with lifespan
-app = FastAPI(lifespan=app_lifespan)
+app = FastAPI(
+    title="SpeechToNote API",
+    description="API for managing speaker notes and commands",
+    version="1.2.0",
+    lifespan=app_lifespan
+)
+
+# Add CORS middleware with configuration
+app.add_middleware(
+    CORSMiddleware,
+    **CORS_CONFIG
+)
+
+print(f"[CORS] Allowed origins: {CORS_CONFIG['allow_origins']}")
 
 # Function to get database connection
 def get_database():
