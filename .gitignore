@@ -171,6 +171,7 @@ cython_debug/
 uvicorn.log
 
 # FastAPI configuration files
+config_*.py
 config_local.py
 config_dev.py
 config_release.py
