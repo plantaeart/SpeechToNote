@@ -155,19 +155,21 @@ const saveEdit = async () => {
       {{ error }}
     </Message>
 
-    <!-- Remove the loading container and show empty state when no commands -->
+    <!-- Empty state when no commands -->
     <Card v-if="!hasCommands && !isLoading" class="empty-state-card">
       <template #content>
         <div class="empty-state">
           <i class="pi pi-microphone empty-icon"></i>
           <h3>Aucune commande vocale</h3>
-          <p>Créez votre première commande vocale pour commencer.</p>
-          <Button
-            icon="pi pi-plus"
-            label="Créer une commande"
-            severity="success"
-            class="create-btn"
-          />
+          <div v-if="!hasError">
+            <p>Créez votre première commande vocale pour commencer.</p>
+            <Button
+              icon="pi pi-plus"
+              label="Créer une commande"
+              severity="success"
+              class="create-btn"
+            />
+          </div>
         </div>
       </template>
     </Card>
