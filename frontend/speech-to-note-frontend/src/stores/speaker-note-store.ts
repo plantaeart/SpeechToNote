@@ -6,6 +6,7 @@ import { ResponseValidator, type BaseResponse } from '@/models/response/BaseResp
 import ENV_DOCKER from '@/config/env.local.docker'
 import ENV_LOCAL from '@/config/env.local'
 import { SNRequestBuilder } from '@/models/request/SNRequest'
+import { CURRENT_ENV } from '@/config/env.current'
 
 export const useSpeakerNoteStore = defineStore('speakerNote', () => {
   // State
@@ -15,9 +16,8 @@ export const useSpeakerNoteStore = defineStore('speakerNote', () => {
   const lastResponse = ref<BaseResponse | null>(null)
 
   // Service instance
-  const useDockerEnv = ref(false)
   const service = computed(
-    () => new SpeakerNoteService(useDockerEnv.value ? ENV_DOCKER : ENV_LOCAL),
+    () => new SpeakerNoteService(CURRENT_ENV === 'local_docker' ? ENV_DOCKER : ENV_LOCAL),
   )
 
   // Getters
@@ -249,7 +249,6 @@ export const useSpeakerNoteStore = defineStore('speakerNote', () => {
     loading,
     error,
     lastResponse,
-    useDockerEnv,
 
     // Getters
     notesCount,
