@@ -10,7 +10,7 @@ print("[STARTUP] 🚀 SpeechToNote API Initialization", flush=True)
 print("="*60, flush=True)
 
 # Import smart configuration
-from .config import MONGO_URI, DATABASE_NAME, COLLECTIONS
+from app.configs.config import MONGO_URI, DATABASE_NAME, COLLECTIONS
 from .migrations.speaker_note_migrations import SpeakerNoteMigrations
 from .migrations.speaker_command_migrations import SpeakerCommandMigrations
 
