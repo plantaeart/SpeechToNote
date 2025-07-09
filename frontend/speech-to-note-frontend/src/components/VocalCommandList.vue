@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useSpeakerCommandStore } from '@/stores/speaker-command-store'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Message from 'primevue/message'
@@ -12,6 +12,9 @@ import ConfirmPopup from 'primevue/confirmpopup'
 import { useConfirm } from 'primevue/useconfirm'
 import { IS_DEBUG } from '@/config/env.current'
 import { formatDate } from '@/utils/dateUtils'
+import InputText from 'primevue/inputtext'
+import Textarea from 'primevue/textarea'
+import Dialog from 'primevue/dialog'
 
 const commandStore = useSpeakerCommandStore()
 const confirm = useConfirm()
@@ -25,6 +28,18 @@ const hasCommands = computed(() => commandStore.hasCommands)
 
 // Local state for refresh functionality
 const refreshing = ref(false)
+
+// Local state for update functionality
+const updateDialogVisible = ref(false)
+const updateCommandData = ref({
+  id_command: 0,
+  command_name: '',
+  command_vocal: '',
+  command_description: '',
+})
+
+// Scroll position preservation
+const scrollPosition = ref(0)
 
 // Fetch commands on component mount
 onMounted(async () => {
@@ -60,6 +75,32 @@ const deleteCommand = async (event: Event, id_command: number, commandName: stri
       await commandStore.deleteCommandFromStore(id_command)
     },
   })
+}
+
+const openUpdateDialog = (command: any) => {
+  // Save current scroll position
+  scrollPosition.value = window.scrollY
+
+  updateCommandData.value = {
+    id_command: command.id_command,
+    command_name: command.command_name,
+    command_vocal: command.command_vocal,
+    command_description: command.command_description || '',
+  }
+  updateDialogVisible.value = true
+}
+
+const updateCommand = async () => {
+  await commandStore.updateCommandFromStore(updateCommandData.value.id_command, {
+    command_name: updateCommandData.value.command_name,
+    command_vocal: updateCommandData.value.command_vocal,
+    command_description: updateCommandData.value.command_description,
+  })
+  updateDialogVisible.value = false
+
+  // Restore scroll position after DOM update
+  await nextTick()
+  window.scrollTo(0, scrollPosition.value)
 }
 </script>
 
@@ -139,6 +180,15 @@ const deleteCommand = async (event: Event, id_command: number, commandName: stri
             </div>
             <div class="command-actions">
               <Button
+                @click="openUpdateDialog(command)"
+                icon="pi pi-pencil"
+                severity="info"
+                text
+                rounded
+                size="medium"
+                :title="'Modifier'"
+              />
+              <Button
                 @click="(event) => deleteCommand(event, command.id_command, command.command_name)"
                 icon="pi pi-trash"
                 severity="danger"
@@ -206,6 +256,46 @@ const deleteCommand = async (event: Event, id_command: number, commandName: stri
         </template>
       </Card>
     </div>
+
+    <!-- Update Dialog -->
+    <Dialog
+      v-model:visible="updateDialogVisible"
+      modal
+      header="Modifier la commande vocale"
+      :style="{ width: '500px' }"
+    >
+      <div class="update-form">
+        <div class="field">
+          <label for="command_name">Nom de la commande:</label>
+          <InputText id="command_name" v-model="updateCommandData.command_name" class="w-full" />
+        </div>
+
+        <div class="field">
+          <label for="command_vocal">Déclencheur vocal:</label>
+          <InputText id="command_vocal" v-model="updateCommandData.command_vocal" class="w-full" />
+        </div>
+
+        <div class="field">
+          <label for="command_description">Description:</label>
+          <Textarea
+            id="command_description"
+            v-model="updateCommandData.command_description"
+            rows="3"
+            class="w-full"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <Button
+          label="Annuler"
+          icon="pi pi-times"
+          @click="updateDialogVisible = false"
+          class="p-button-text"
+        />
+        <Button label="Mettre à jour" icon="pi pi-check" @click="updateCommand" autofocus />
+      </template>
+    </Dialog>
 
     <!-- ConfirmPopup component -->
     <ConfirmPopup />
@@ -289,7 +379,7 @@ const deleteCommand = async (event: Event, id_command: number, commandName: stri
 
 .commands-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1rem;
 }
 
@@ -423,6 +513,23 @@ const deleteCommand = async (event: Event, id_command: number, commandName: stri
   color: var(--text-color-secondary);
   font-size: 0.9rem;
   font-weight: 500;
+}
+
+.update-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field label {
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 /* Responsive Design */
