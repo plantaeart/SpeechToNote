@@ -7,6 +7,7 @@ import ENV_DOCKER from '../config/env.local.docker'
 import type { SpeakerCommand } from '@/models/SpeakerCommand'
 import { ResponseValidator, type BaseResponse } from '@/models/response/BaseResponse'
 import { SCRequestBuilder } from '@/models/request/SCRequest'
+import { CURRENT_ENV } from '@/config/env.current'
 
 export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
   // State
@@ -16,9 +17,8 @@ export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
   const lastResponse = ref<BaseResponse | null>(null)
 
   // Service instance
-  const useDockerEnv = ref(false)
   const service = computed(
-    () => new SpeakerCommandService(useDockerEnv.value ? ENV_DOCKER : ENV_LOCAL),
+    () => new SpeakerCommandService(CURRENT_ENV === 'local_docker' ? ENV_DOCKER : ENV_LOCAL),
   )
 
   // Getters
@@ -271,7 +271,6 @@ export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
     loading,
     error,
     lastResponse,
-    useDockerEnv,
 
     // Getters
     commandsCount,
