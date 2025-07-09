@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Any, Optional
 
-class SNResponse(BaseModel):
+class BaseResponse(BaseModel):
     """Standardized response model for Speaker Command API"""
     data: Any = None
     status_code: int
