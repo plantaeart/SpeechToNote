@@ -9,9 +9,11 @@ import Aura from '@primeuix/themes/aura'
 import './assets/style.scss'
 import Tooltip from 'primevue/tooltip'
 import ConfirmPopup from 'primevue/confirmpopup'
+import ToastService from 'primevue/toastservice'
 
 const app = createApp(App)
 app.use(ConfirmationService)
+app.use(ToastService)
 app.use(PrimeVue, {
   theme: {
     preset: Aura,
