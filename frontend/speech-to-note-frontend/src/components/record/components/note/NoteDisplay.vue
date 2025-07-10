@@ -33,6 +33,6 @@ defineProps<{
   justify-content: center;
   align-items: center;
   height: 100%;
-  margin-left: 4rem;
+  margin-left: 1rem;
 }
 </style>
