@@ -181,7 +181,7 @@ def main():
             sys.exit(0)
     
     print("\n" + "=" * 60)
-    print("🏷️ Sélection du conteneur à démarrer")
+    print("🏷️ Sélection du/des conteneur(s) à démarrer")
     print("Conteneurs disponibles:")
     
     for i, container in enumerate(containers, 1):
@@ -198,116 +198,128 @@ def main():
         print()
     
     print("Vous pouvez:")
-    print("  - Saisir le numéro correspondant")
-    print("  - Saisir le nom du conteneur directement")
-    print("  - Saisir l'ID du conteneur")
+    print("  - Saisir UN numéro pour un seul conteneur")
+    print("  - Saisir PLUSIEURS numéros séparés par des virgules (ex: 1,3,5)")
+    print("  - Saisir des noms de conteneurs séparés par des virgules")
+    print("  - Mélanger numéros et noms (ex: 1,mongo-local,3)")
     
-    # Get container selection
+    # Get container selection(s)
     while True:
-        selection = input("\n🔖 Quel conteneur voulez-vous démarrer? ").strip()
+        selection = input("\n🔖 Quel(s) conteneur(s) voulez-vous démarrer? ").strip()
         
         if not selection:
             print("❌ La sélection ne peut pas être vide")
             continue
         
-        selected_container = None
+        selected_containers = []
+        selections = [s.strip() for s in selection.split(',')]
         
-        # Check if it's a number (index)
-        if selection.isdigit():
-            index = int(selection) - 1
-            if 0 <= index < len(containers):
-                selected_container = containers[index]
-                break
+        for sel in selections:
+            container_found = None
+            
+            # Check if it's a number (index)
+            if sel.isdigit():
+                index = int(sel) - 1
+                if 0 <= index < len(containers):
+                    container_found = containers[index]
+                else:
+                    print(f"❌ Numéro {sel} invalide. Choisissez entre 1 et {len(containers)}")
+                    break
             else:
-                print(f"❌ Numéro invalide. Choisissez entre 1 et {len(containers)}")
-                continue
-        else:
-            # Check by name or ID
-            for container in containers:
-                if (selection.lower() == container['name'].lower() or 
-                    selection.lower() == container['id'].lower() or
-                    container['id'].startswith(selection.lower())):
-                    selected_container = container
+                # Check by name or ID
+                for container in containers:
+                    if (sel.lower() == container['name'].lower() or 
+                        sel.lower() == container['id'].lower() or
+                        container['id'].startswith(sel.lower())):
+                        container_found = container
+                        break
+                
+                if not container_found:
+                    print(f"❌ Conteneur '{sel}' non trouvé")
                     break
             
-            if selected_container:
-                break
-            else:
-                print(f"❌ Conteneur '{selection}' non trouvé")
-                continue
-    
-    container_id = selected_container['id']
-    container_name = selected_container['name']
-    container_status = selected_container['status']
-    
-    # Check if container is already running
-    is_running = 'Up' in container_status
-    
-    # Ask for action if container is already running
-    if is_running:
-        print(f"⚠️ Le conteneur {container_name} est déjà en cours d'exécution")
-        print(f"   Status actuel: {container_status}")
-        print("🔧 Actions disponibles:")
-        print("1. Redémarrer le conteneur")
-        print("2. Annuler")
+            # Check for duplicates
+            if container_found and not any(c['id'] == container_found['id'] for c in selected_containers):
+                selected_containers.append(container_found)
+            elif container_found:
+                print(f"⚠️ Conteneur {container_found['name']} déjà sélectionné, ignoré")
         
-        while True:
-            action_choice = input("\nChoisissez (1/2): ").strip()
-            
-            if action_choice == "1":
-                action = "restart"
-                break
-            elif action_choice == "2":
-                print("🚫 Démarrage annulé")
-                sys.exit(0)
-            else:
-                print("❌ Choisissez 1 ou 2")
-    else:
-        action = "start"
+        if len(selected_containers) == len(selections):
+            break
     
-    # Confirmation
-    print(f"\n📋 Résumé:")
-    print(f"   Conteneur: {container_name}")
-    print(f"   ID: {container_id}")
-    print(f"   Image: {selected_container['image']}")
-    print(f"   Status: {container_status}")
-    print(f"   Action: {'Redémarrage' if action == 'restart' else 'Démarrage'}")
-    
-    confirm = input(f"\n❓ Confirmer le {'redémarrage' if action == 'restart' else 'démarrage'}? (y/N): ").strip().lower()
-    
-    if confirm not in ['y', 'yes']:
-        print("🚫 Action annulée")
+    if not selected_containers:
+        print("🚫 Aucun conteneur valide sélectionné")
         sys.exit(0)
     
-    # Execute the action
-    if action == "restart":
-        success = restart_container(container_id, container_name)
-    else:
-        success = start_container(container_id, container_name)
+    # Show selected containers and ask for confirmation
+    print(f"\n📋 Conteneurs sélectionnés ({len(selected_containers)}):")
+    running_containers = []
+    stopped_containers = []
     
-    if success:
-        print(f"\n🎉 {'Redémarrage' if action == 'restart' else 'Démarrage'} terminé avec succès!")
-        print(f"💡 Commandes utiles:")
-        print(f"   docker logs {container_name}")
-        print(f"   docker logs -f {container_name}")
-        print(f"   docker stop {container_name}")
-        print(f"   docker exec -it {container_name} /bin/bash")
+    for i, container in enumerate(selected_containers, 1):
+        is_running = 'Up' in container['status']
+        status_icon = "🟢" if is_running else "🔴"
+        action = "redémarrage" if is_running else "démarrage"
         
-        # Show ports if container exposes any
-        ports_cmd = f'docker port {container_id}'
-        ports_out, _, _ = run_command(ports_cmd, capture_output=True)
-        if ports_out:
-            print(f"🌐 Ports exposés:")
-            for line in ports_out.split('\n'):
-                if line.strip():
-                    print(f"   {line}")
+        print(f"  {i}. {status_icon} {container['name']} - {action}")
+        
+        if is_running:
+            running_containers.append(container)
+        else:
+            stopped_containers.append(container)
+    
+    print(f"\n📊 Résumé: {len(stopped_containers)} à démarrer, {len(running_containers)} à redémarrer")
+    
+    if running_containers:
+        print(f"⚠️ {len(running_containers)} conteneur(s) en cours d'exécution seront redémarrés")
+    
+    confirm = input(f"\n❓ Confirmer le démarrage de {len(selected_containers)} conteneur(s)? (y/N): ").strip().lower()
+    
+    if confirm not in ['y', 'yes']:
+        print("🚫 Démarrage annulé")
+        sys.exit(0)
+    
+    # Start containers in order
+    success_count = 0
+    failed_containers = []
+    
+    print(f"\n🚀 Démarrage de {len(selected_containers)} conteneur(s) en ordre...")
+    
+    for i, container in enumerate(selected_containers, 1):
+        container_id = container['id']
+        container_name = container['name']
+        is_running = 'Up' in container['status']
+        
+        print(f"\n[{i}/{len(selected_containers)}] {'🔄' if is_running else '🚀'} {container_name}")
+        
+        if is_running:
+            success = restart_container(container_id, container_name)
+        else:
+            success = start_container(container_id, container_name)
+        
+        if success:
+            success_count += 1
+            # Add small delay between container starts
+            if i < len(selected_containers):
+                print("⏳ Attente de 2 secondes avant le prochain conteneur...")
+                import time
+                time.sleep(2)
+        else:
+            failed_containers.append(container_name)
+    
+    # Final summary
+    print(f"\n{'🎉' if success_count == len(selected_containers) else '⚠️'} Démarrage terminé!")
+    print(f"✅ {success_count}/{len(selected_containers)} conteneur(s) démarré(s) avec succès")
+    
+    if failed_containers:
+        print(f"❌ Échecs: {', '.join(failed_containers)}")
+        print(f"💡 Vérifiez les logs des conteneurs en échec")
     else:
-        print(f"\n💥 Échec du {'redémarrage' if action == 'restart' else 'démarrage'}")
-        print(f"💡 Conseils:")
-        print(f"   - Vérifiez que le conteneur existe")
-        print(f"   - Vérifiez les logs: docker logs {container_name}")
-        print(f"   - Vérifiez la configuration Docker")
-        sys.exit(1)
+        print(f"💡 Tous les conteneurs sont maintenant en cours d'exécution")
+    
+    print(f"\n💡 Commandes utiles:")
+    print(f"   docker ps")
+    print(f"   docker logs <container_name>")
 
 if __name__ == "__main__":
     try:
