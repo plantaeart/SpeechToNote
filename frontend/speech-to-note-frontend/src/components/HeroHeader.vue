@@ -17,9 +17,10 @@
 
 .hero-header h1 {
   width: fit-content;
-  font-size: 8vw;
+  font-size: 4vw;
   padding: 1vw 3vw 1vw 3vw;
   border: 1vw solid var(--moss-green-color);
   border-radius: 2vw;
+  color: var(--beige-color);
 }
 </style>
