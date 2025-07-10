@@ -25,6 +25,7 @@ defineProps<{
   color: var(--beige-color);
   font-size: 2.5rem;
   font-weight: bold;
+  width: 50vw;
 }
 
 .note-content {
@@ -32,5 +33,6 @@ defineProps<{
   justify-content: center;
   align-items: center;
   height: 100%;
+  margin-left: 4rem;
 }
 </style>

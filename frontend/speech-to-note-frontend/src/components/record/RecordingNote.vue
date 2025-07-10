@@ -11,10 +11,11 @@ const isRecording = ref(false)
 <template>
   <div class="recording-note">
     <RecapCommands />
-    <Separator :height="'1rem'" />
-    <RecordButton @recordingStatus="isRecording = $event" />
-    <Separator />
-    <NoteContent :isRecording="isRecording" />
+    <Separator :height="'2rem'" />
+    <div class="record-note-content">
+      <RecordButton @recordingStatus="isRecording = $event" />
+      <NoteContent :isRecording="isRecording" />
+    </div>
   </div>
 </template>
 
@@ -24,6 +25,15 @@ const isRecording = ref(false)
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: auto;
+}
+
+.recording-note .record-note-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
   height: auto;
 }
