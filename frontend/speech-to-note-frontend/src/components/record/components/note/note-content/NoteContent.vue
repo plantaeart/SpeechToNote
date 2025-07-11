@@ -8,6 +8,7 @@ import { useToast } from 'primevue/usetoast'
 import { GoogleSpeechService } from '@/services/GoogleSpeechService'
 import { useSpeakerNoteStore } from '@/stores/speaker-note-store'
 import { useRecordingStore } from '@/stores/recording-store'
+import { useSpeakerCommandStore } from '@/stores/speaker-command-store'
 import { isContentEmpty } from '@/utils/stringUtils'
 
 var baseNoteContent = ref('') // Store the base content with raw commands
@@ -21,32 +22,30 @@ const timeMaxValue = 25 // 25 seconds countdown
 var recordingTimer = ref(timeMaxValue) // 25 seconds countdown
 var timerInterval = ref<number | null>(null)
 
-// Define speech commands configuration
-const speechCommands = [
-  {
-    command_vocal: ['titre', 'titres'],
-    htmlTagStart: '<h1>',
-    htmlTagEnd: '</h1>',
-  },
-  {
-    command_vocal: ['sous-titre', 'sous-titres'],
-    htmlTagStart: '<h2>',
-    htmlTagEnd: '</h2>',
-  },
-  {
-    command_vocal: ['saut de ligne'],
-    htmlTagStart: '',
-    htmlTagEnd: '',
-    isLineBreak: true,
-  },
-]
+// Dynamic speech commands from database
+const speechCommands = computed(() => {
+  return commandStore.commands.map((command) => ({
+    command_vocal: Array.isArray(command.command_vocal)
+      ? command.command_vocal
+      : [command.command_vocal],
+    htmlTagStart: command.html_tag_start || '',
+    htmlTagEnd: command.html_tag_end || '',
+    isLineBreak:
+      command.html_tag_end === '</br>' ||
+      command.html_tag_start === '<br>' ||
+      command.html_tag_start === '<br/>',
+  }))
+})
 
 // Function to process speech commands for display only
 const processSpeechCommands = (text: string): string => {
   if (!text.trim()) return text
 
+  const commands = speechCommands.value
+  if (commands.length === 0) return text
+
   // Create regex pattern from all commands (flatten arrays)
-  const commandPatterns = speechCommands.flatMap((cmd) => cmd.command_vocal).join('|')
+  const commandPatterns = commands.flatMap((cmd) => cmd.command_vocal).join('|')
   const regex = new RegExp(`(${commandPatterns})\\s+(.+?)(?=\\s+(${commandPatterns})|$)`, 'gi')
 
   let processedText = text
@@ -61,7 +60,7 @@ const processSpeechCommands = (text: string): string => {
     }
 
     // Find the matching command configuration
-    const commandConfig = speechCommands.find((cmd) =>
+    const commandConfig = commands.find((cmd) =>
       cmd.command_vocal.some((v) => v.toLowerCase() === command.toLowerCase()),
     )
 
@@ -75,6 +74,9 @@ const processSpeechCommands = (text: string): string => {
       } else if (commandConfig.htmlTagStart && commandConfig.htmlTagEnd) {
         // Handle commands with HTML tags
         result += `${commandConfig.htmlTagStart}${capitalizedContent}${commandConfig.htmlTagEnd}\n`
+      } else if (commandConfig.htmlTagStart) {
+        // Handle self-closing tags like <br>
+        result += `${commandConfig.htmlTagStart}${capitalizedContent}\n`
       } else {
         // Default: just add the content
         result += `${capitalizedContent}\n`
@@ -134,6 +136,7 @@ const isProcessing = ref(false)
 const toast = useToast()
 const speakerNoteStore = useSpeakerNoteStore()
 const recordingStore = useRecordingStore()
+const commandStore = useSpeakerCommandStore()
 const isInitialized = ref(false)
 
 // Initialize Google Speech service
@@ -328,6 +331,8 @@ watch(
 
 onMounted(async () => {
   initSpeechService()
+  // Fetch speaker commands from database
+  await commandStore.fetchAllCommandsFromStore()
   // Mark as initialized after setup
   isInitialized.value = true
 })
@@ -513,6 +518,7 @@ const onContentChange = () => {
       label="Save Note"
       severity="success"
       @click="saveNote()"
+      :disabled="isProcessing || recordingStore.isRecording"
     />
   </div>
 </template>
