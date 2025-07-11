@@ -12,7 +12,7 @@ defineProps<{
   <div class="note-content">
     <div v-if="isRecording || !['', '<p></p>'].includes(noteContent)">
       <h2>Recording Note</h2>
-      <NoteContent @noteContentStatus="noteContent = $event" />
+      <NoteContent :is-recording="isRecording" @noteContentStatus="noteContent = $event" />
     </div>
     <div v-else>
       <p class="not-recording">Not Recording</p>
