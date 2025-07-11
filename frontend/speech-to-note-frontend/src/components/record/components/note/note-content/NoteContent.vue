@@ -380,9 +380,11 @@ const saveNote = async () => {
   }
 
   try {
-    console.log('Saving note with content:', noteContent.value)
-    // Use the title from input and raw content for saving
-    await speakerNoteStore.createNoteFromStore(noteTitle.value.trim(), noteContent.value, [])
+    // Use the processed content (with HTML formatting) for saving
+    const processedContent = processSpeechCommands(noteContent.value)
+    console.log('Saving note with processed content:', processedContent)
+
+    await speakerNoteStore.createNoteFromStore(noteTitle.value.trim(), processedContent, [])
 
     console.log('Note saved successfully:', speakerNoteStore.hasError)
     if (!speakerNoteStore.hasError) {
