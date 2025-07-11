@@ -227,6 +227,17 @@ charts/*/Chart.lock
 .env.staging
 .env.production
 
+# env var frontend
+.env.local*.ts
+.env.development*.ts
+.env.staging*.ts
+.env.production*.ts
+
+# Configuration files with API keys
+frontend/speech-to-note-frontend/src/config/env.local.ts
+frontend/speech-to-note-frontend/src/config/env.local.docker.ts
+frontend/speech-to-note-frontend/src/config/env.current.ts
+
 # Logs
 logs/
 *.log
