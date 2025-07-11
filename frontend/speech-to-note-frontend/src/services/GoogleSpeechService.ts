@@ -1,4 +1,8 @@
-import { CURRENT_ENV } from '@/config/env.current'
+import {
+  CURRENT_ENV,
+  GCP_STT_API_COLLECT_EVERY_X_MS,
+  GCP_STT_API_TRANSCRIBE_EVERY_X_MS,
+} from '@/config/env.current'
 import ENV_LOCAL from '@/config/env.local'
 import ENV_DOCKER from '@/config/env.local.docker'
 
@@ -8,6 +12,7 @@ export class GoogleSpeechService {
   private audioChunks: Blob[] = []
   private isRecording = false
   private onTranscriptCallback: ((transcript: string) => void) | null = null
+  private transcriptionInterval: number | null = null
 
   constructor() {
     const config = CURRENT_ENV === 'local_docker' ? ENV_DOCKER : ENV_LOCAL
@@ -33,14 +38,13 @@ export class GoogleSpeechService {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 48000, // Changed from 16000 to 48000 for webm
+          sampleRate: 48000,
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
         },
       })
 
-      // Use audio/wav instead of webm for better compatibility
       this.mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus',
       })
@@ -48,26 +52,31 @@ export class GoogleSpeechService {
       this.audioChunks = []
       this.isRecording = true
 
-      this.mediaRecorder.ondataavailable = async (event) => {
+      this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           this.audioChunks.push(event.data)
-
-          // Only process real-time transcription for larger chunks (reduce API calls)
-          if (this.onTranscriptCallback && event.data.size > 10000) {
-            try {
-              const audioBlob = new Blob([event.data], { type: 'audio/webm' })
-              const transcript = await this.transcribeAudio(audioBlob)
-              if (transcript) {
-                this.onTranscriptCallback(transcript)
-              }
-            } catch (error) {
-              console.warn('Real-time transcription error:', error)
-            }
-          }
         }
       }
 
-      this.mediaRecorder.start(2000) // Collect data every 2 seconds for real-time updates
+      this.mediaRecorder.start(GCP_STT_API_COLLECT_EVERY_X_MS) // Collect data every 1 second
+
+      // Start continuous transcription every 2 seconds
+      this.transcriptionInterval = setInterval(async () => {
+        if (this.audioChunks.length > 0 && this.onTranscriptCallback) {
+          try {
+            // Take all current chunks for transcription
+            const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' })
+            const transcript = await this.transcribeAudio(audioBlob)
+            if (transcript.trim()) {
+              console.log('Real-time transcript:', transcript)
+              this.onTranscriptCallback(transcript)
+            }
+          } catch (error) {
+            console.warn('Real-time transcription error:', error)
+          }
+        }
+      }, GCP_STT_API_TRANSCRIBE_EVERY_X_MS) // Transcribe every 2 seconds
+
       return stream
     } catch (error) {
       console.error('Failed to start recording:', error)
@@ -80,6 +89,12 @@ export class GoogleSpeechService {
       if (!this.mediaRecorder || !this.isRecording) {
         resolve('')
         return
+      }
+
+      // Clear the transcription interval
+      if (this.transcriptionInterval) {
+        clearInterval(this.transcriptionInterval)
+        this.transcriptionInterval = null
       }
 
       this.mediaRecorder.onstop = async () => {
@@ -95,7 +110,6 @@ export class GoogleSpeechService {
       this.mediaRecorder.stop()
       this.isRecording = false
 
-      // Stop all tracks
       if (this.mediaRecorder.stream) {
         this.mediaRecorder.stream.getTracks().forEach((track) => track.stop())
       }
