@@ -1,18 +1,12 @@
 <script setup lang="ts">
 import { Button } from 'primevue'
-import { ref, watch } from 'vue'
+import { useRecordingStore } from '@/stores/recording-store'
 
-var isRecording = ref(false)
+const recordingStore = useRecordingStore()
+
 const startRecording = () => {
-  // Logic to start recording goes here
-  isRecording.value = !isRecording.value
+  recordingStore.toggleRecording()
 }
-
-// Emit isRecording value to parent component
-const emit = defineEmits(['recordingStatus'])
-watch(isRecording, (newValue) => {
-  emit('recordingStatus', newValue)
-})
 </script>
 
 <template>
@@ -21,7 +15,9 @@ watch(isRecording, (newValue) => {
       class="mic-button"
       icon="pi pi-microphone"
       v-on:click="startRecording()"
-      :class="isRecording ? 'p-button-danger button-pulse-animation' : 'p-button-success'"
+      :class="
+        recordingStore.isRecording ? 'p-button-danger button-pulse-animation' : 'p-button-success'
+      "
     />
   </div>
 </template>
