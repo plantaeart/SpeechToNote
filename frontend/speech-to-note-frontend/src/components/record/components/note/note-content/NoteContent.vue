@@ -2,7 +2,7 @@
 import Editor from 'primevue/editor'
 import Button from 'primevue/button'
 import Toast from 'primevue/toast'
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { GoogleSpeechService } from '@/services/GoogleSpeechService'
 
@@ -10,7 +10,25 @@ const props = defineProps<{
   isRecording: boolean
 }>()
 
-var noteContent = ref('')
+var baseNoteContent = ref('') // Store the base content
+var realtimeTranscript = ref('') // Store real-time transcript
+
+// Computed property to combine base content with real-time transcript
+const noteContent = computed({
+  get: () => {
+    const base = baseNoteContent.value || ''
+    const realtime = realtimeTranscript.value
+    if (realtime && base) {
+      const separator = base.endsWith(' ') ? '' : ' '
+      return base + separator + realtime
+    }
+    return base + realtime
+  },
+  set: (value) => {
+    baseNoteContent.value = value
+    realtimeTranscript.value = ''
+  },
+})
 
 // Google Speech service setup
 const speechService = ref<GoogleSpeechService | null>(null)
@@ -96,6 +114,12 @@ const startRecording = async () => {
 
   try {
     isProcessing.value = true
+
+    // Set up real-time transcript callback
+    speechService.value.setTranscriptCallback((transcript) => {
+      realtimeTranscript.value = transcript
+    })
+
     const stream = await speechService.value.startRecording()
 
     if (!stream) {
@@ -135,11 +159,13 @@ const stopRecording = async () => {
 
     const transcript = await speechService.value.stopRecording()
 
-    if (transcript) {
-      // Append to existing content with proper spacing
-      const currentContent = noteContent.value || ''
+    if (transcript || realtimeTranscript.value) {
+      // Combine final transcript with any remaining real-time content
+      const finalTranscript = transcript || realtimeTranscript.value
+      const currentContent = baseNoteContent.value || ''
       const separator = currentContent && !currentContent.endsWith(' ') ? ' ' : ''
-      noteContent.value = currentContent + separator + transcript
+      baseNoteContent.value = currentContent + separator + finalTranscript
+      realtimeTranscript.value = '' // Clear real-time transcript
 
       toast.add({
         severity: 'success',
@@ -197,7 +223,8 @@ const saveNote = () => {
 }
 
 const clearNote = () => {
-  noteContent.value = ''
+  baseNoteContent.value = ''
+  realtimeTranscript.value = ''
   toast.add({
     severity: 'info',
     summary: 'Cleared',
