@@ -13,6 +13,19 @@ const props = defineProps<{
 var baseNoteContent = ref('') // Store the base content
 var realtimeTranscript = ref('') // Store real-time transcript
 
+// Function to process speech commands in the text
+const processSpeechCommands = (text: string): string => {
+  let processedText = text
+
+  // Handle "Point titre" command - wrap following text in <h1> tags
+  processedText = processedText.replace(/point titre\s+(.+?)(?=\s+point\s|$)/gi, '<h1>$1</h1>')
+
+  // Handle "point paragraphe" command - add line break and remove the command
+  processedText = processedText.replace(/point paragraphe\s*/gi, '<br>')
+
+  return processedText
+}
+
 // Computed property to combine base content with real-time transcript
 const noteContent = computed({
   get: () => {
@@ -27,7 +40,9 @@ const noteContent = computed({
   },
   set: (value) => {
     console.log('Setting note content:', value)
-    baseNoteContent.value = value
+    // Process speech commands before setting the content
+    const processedValue = processSpeechCommands(value)
+    baseNoteContent.value = processedValue
     realtimeTranscript.value = ''
   },
 })
