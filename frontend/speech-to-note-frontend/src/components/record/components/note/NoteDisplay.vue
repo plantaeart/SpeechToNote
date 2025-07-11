@@ -10,12 +10,9 @@ const props = defineProps<{
 
 <template>
   <div class="note-content">
-    <div v-if="props.isRecording || !['', '<p></p>'].includes(noteContent)">
+    <div>
       <h2>Recording Note</h2>
       <NoteContent :is-recording="props.isRecording" @noteContentStatus="noteContent = $event" />
-    </div>
-    <div v-else>
-      <p class="not-recording">Not Recording</p>
     </div>
   </div>
 </template>
