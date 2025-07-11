@@ -10,23 +10,42 @@ const props = defineProps<{
   isRecording: boolean
 }>()
 
-var baseNoteContent = ref('') // Store the base content
+var baseNoteContent = ref('') // Store the base content with raw commands
 var realtimeTranscript = ref('') // Store real-time transcript
 
-// Function to process speech commands in the text
+// Function to process speech commands for display only
 const processSpeechCommands = (text: string): string => {
   let processedText = text
 
-  // Handle "Point titre" command - wrap following text in <h1> tags
-  processedText = processedText.replace(/point titre\s+(.+?)(?=\s+point\s|$)/gi, '<h1>$1</h1>')
+  // Handle title commands - wrap following text in <h1> tags and add line break
+  processedText = processedText.replace(
+    /(nouveau titre|titre)\s+(.+?)(?=\s+(nouveau titre|titre|saut de ligne)|$)/gi,
+    (match, command, titleText) => {
+      // Capitalize first letter of the title and trim whitespace
+      const trimmedTitle = titleText.trim()
+      const capitalizedTitle = trimmedTitle.charAt(0).toUpperCase() + trimmedTitle.slice(1)
+      return `<h1>${capitalizedTitle}</h1>\n`
+    },
+  )
 
-  // Handle "point paragraphe" command - add line break and remove the command
-  processedText = processedText.replace(/point paragraphe\s*/gi, '<br>')
+  // Handle "Saut de ligne" command - add line break and process following text
+  processedText = processedText.replace(
+    /saut de ligne\s+(.+?)(?=\s+(nouveau titre|titre|saut de ligne)|$)/gi,
+    (match, followingText) => {
+      // Capitalize first letter of the paragraph and trim whitespace
+      const trimmedText = followingText.trim()
+      const capitalizedText = trimmedText.charAt(0).toUpperCase() + trimmedText.slice(1)
+      return `${capitalizedText}\n`
+    },
+  )
 
-  return processedText
+  // Handle standalone "Saut de ligne" command (without following text)
+  processedText = processedText.replace(/saut de ligne\s*$/gi, '\n')
+
+  return processedText.trim()
 }
 
-// Computed property to combine base content with real-time transcript
+// Raw content with commands (for storage/editing)
 const noteContent = computed({
   get: () => {
     console.log('Combining base content and real-time transcript')
@@ -40,28 +59,20 @@ const noteContent = computed({
   },
   set: (value) => {
     console.log('Setting note content:', value)
-    // Process speech commands before setting the content
-    const processedValue = processSpeechCommands(value)
-    baseNoteContent.value = processedValue
+    baseNoteContent.value = value
     realtimeTranscript.value = ''
   },
+})
+
+// Processed content for display (with commands converted to HTML)
+const displayContent = computed(() => {
+  return processSpeechCommands(noteContent.value)
 })
 
 // Google Speech service setup
 const speechService = ref<GoogleSpeechService | null>(null)
 const microphonePermission = ref<boolean | null>(null)
 const isProcessing = ref(false)
-
-const emit = defineEmits(['noteContentStatus'])
-watch(noteContent, (newValue) => {
-  // Use regex to determine if newvalue is empty tags, if yes, newValue will be an empty string
-  const emptyTagsRegex = /^(<p><br><\/p>|<p><\/p>|<br>|\s*)$/
-  if (emptyTagsRegex.test(newValue)) {
-    newValue = ''
-    noteContent.value = newValue
-  }
-  emit('noteContentStatus', newValue)
-})
 
 const toast = useToast()
 
@@ -253,7 +264,7 @@ const clearNote = () => {
 
 <template>
   <Toast />
-  <Editor v-model="noteContent" editorStyle="font-size: 1.25rem" class="note-text">
+  <Editor v-model="displayContent" editorStyle="font-size: 1.25rem" class="note-text">
     <template v-slot:toolbar>
       <span class="ql-formats">
         <button v-tooltip.bottom="'Header'" class="ql-header" value="1"></button>
@@ -282,6 +293,7 @@ const clearNote = () => {
       label="Clear"
       severity="info"
       @click="clearNote()"
+      :disabled="isProcessing || props.isRecording"
     />
     <Button
       class="p-button-secondary"

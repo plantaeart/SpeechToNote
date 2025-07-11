@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import NoteContent from './note-content/NoteContent.vue'
 
-const noteContent = ref('')
 const props = defineProps<{
   isRecording: boolean
 }>()
@@ -12,7 +11,7 @@ const props = defineProps<{
   <div class="note-content">
     <div>
       <h2>Recording Note</h2>
-      <NoteContent :is-recording="props.isRecording" @noteContentStatus="noteContent = $event" />
+      <NoteContent :is-recording="props.isRecording" />
     </div>
   </div>
 </template>
