@@ -173,7 +173,7 @@ def main():
             sys.exit(0)
     
     print("\n" + "=" * 60)
-    print("🏷️ Sélection du conteneur à arrêter")
+    print("🏷️ Sélection du/des conteneur(s) à arrêter")
     print("Conteneurs disponibles:")
     
     for i, container in enumerate(containers, 1):
@@ -183,95 +183,220 @@ def main():
         print(f"     Status: {container['status']}")
         print()
     
-    print("Vous pouvez:")
-    print("  - Saisir le numéro correspondant")
-    print("  - Saisir le nom du conteneur directement")
-    print("  - Saisir l'ID du conteneur")
+    print("Options de sélection:")
+    print("  - Numéro(s): 1,3,5 ou 1-3 ou 1,2-4")
+    print("  - Noms: mon-app,ma-db")
+    print("  - 'all' pour arrêter tous les conteneurs")
+    print("  - Un seul numéro, nom ou ID")
     
     # Get container selection
     while True:
-        selection = input("\n🔖 Quel conteneur voulez-vous arrêter? ").strip()
+        selection = input("\n🔖 Quel(s) conteneur(s) voulez-vous arrêter? ").strip()
         
         if not selection:
             print("❌ La sélection ne peut pas être vide")
             continue
         
-        selected_container = None
+        selected_containers = []
         
-        # Check if it's a number (index)
-        if selection.isdigit():
-            index = int(selection) - 1
-            if 0 <= index < len(containers):
-                selected_container = containers[index]
-                break
-            else:
-                print(f"❌ Numéro invalide. Choisissez entre 1 et {len(containers)}")
-                continue
-        else:
-            # Check by name or ID
-            for container in containers:
-                if (selection.lower() == container['name'].lower() or 
-                    selection.lower() == container['id'].lower() or
-                    container['id'].startswith(selection.lower())):
-                    selected_container = container
-                    break
+        # Handle 'all' selection
+        if selection.lower() == 'all':
+            selected_containers = containers
+            break
+        
+        # Handle multiple selections
+        if ',' in selection or '-' in selection:
+            parts = selection.split(',')
+            valid_selection = True
             
-            if selected_container:
+            for part in parts:
+                part = part.strip()
+                
+                # Handle range (e.g., "1-3")
+                if '-' in part and part.replace('-', '').isdigit():
+                    range_parts = part.split('-')
+                    if len(range_parts) == 2:
+                        try:
+                            start = int(range_parts[0])
+                            end = int(range_parts[1])
+                            for i in range(start, end + 1):
+                                if 1 <= i <= len(containers):
+                                    container = containers[i - 1]
+                                    if container not in selected_containers:
+                                        selected_containers.append(container)
+                                else:
+                                    print(f"❌ Numéro {i} invalide")
+                                    valid_selection = False
+                                    break
+                        except ValueError:
+                            print(f"❌ Format de plage invalide: {part}")
+                            valid_selection = False
+                            break
+                    else:
+                        print(f"❌ Format de plage invalide: {part}")
+                        valid_selection = False
+                        break
+                
+                # Handle single number
+                elif part.isdigit():
+                    index = int(part) - 1
+                    if 0 <= index < len(containers):
+                        container = containers[index]
+                        if container not in selected_containers:
+                            selected_containers.append(container)
+                    else:
+                        print(f"❌ Numéro {part} invalide")
+                        valid_selection = False
+                        break
+                
+                # Handle name or ID
+                else:
+                    found = False
+                    for container in containers:
+                        if (part.lower() == container['name'].lower() or 
+                            part.lower() == container['id'].lower() or
+                            container['id'].startswith(part.lower())):
+                            if container not in selected_containers:
+                                selected_containers.append(container)
+                            found = True
+                            break
+                    
+                    if not found:
+                        print(f"❌ Conteneur '{part}' non trouvé")
+                        valid_selection = False
+                        break
+            
+            if valid_selection and selected_containers:
                 break
-            else:
-                print(f"❌ Conteneur '{selection}' non trouvé")
+            elif not selected_containers:
+                print("❌ Aucun conteneur sélectionné")
                 continue
+        
+        # Handle single selection
+        else:
+            # Check if it's a number (index)
+            if selection.isdigit():
+                index = int(selection) - 1
+                if 0 <= index < len(containers):
+                    selected_containers = [containers[index]]
+                    break
+                else:
+                    print(f"❌ Numéro invalide. Choisissez entre 1 et {len(containers)}")
+                    continue
+            else:
+                # Check by name or ID
+                for container in containers:
+                    if (selection.lower() == container['name'].lower() or 
+                        selection.lower() == container['id'].lower() or
+                        container['id'].startswith(selection.lower())):
+                        selected_containers = [container]
+                        break
+                
+                if selected_containers:
+                    break
+                else:
+                    print(f"❌ Conteneur '{selection}' non trouvé")
+                    continue
     
-    container_id = selected_container['id']
-    container_name = selected_container['name']
-    container_status = selected_container['status']
-    
-    # Check if container is running
-    if 'Up' not in container_status:
-        print(f"⚠️ Le conteneur {container_name} n'est pas en cours d'exécution")
-        print(f"   Status actuel: {container_status}")
+    # Check if any containers are not running
+    non_running = [c for c in selected_containers if 'Up' not in c['status']]
+    if non_running:
+        print(f"\n⚠️ {len(non_running)} conteneur(s) ne sont pas en cours d'exécution:")
+        for container in non_running:
+            print(f"   - {container['name']}: {container['status']}")
         
         continue_anyway = input("   Continuer quand même? (y/N): ").strip().lower()
         if continue_anyway not in ['y', 'yes']:
             print("🚫 Arrêt annulé")
             sys.exit(0)
     
-    # Confirmation
-    print(f"\n📋 Résumé:")
-    print(f"   Conteneur: {container_name}")
-    print(f"   ID: {container_id}")
-    print(f"   Image: {selected_container['image']}")
-    print(f"   Status: {container_status}")
+    # Show summary
+    print(f"\n📋 Résumé ({len(selected_containers)} conteneur(s) sélectionné(s)):")
+    for i, container in enumerate(selected_containers, 1):
+        status_icon = "🟢" if 'Up' in container['status'] else "🔴"
+        print(f"  {i}. {status_icon} {container['name']} ({container['id'][:12]})")
+        print(f"     Image: {container['image']}")
+        print(f"     Status: {container['status']}")
     
-    confirm = input("\n❓ Confirmer l'arrêt? (y/N): ").strip().lower()
+    # Final confirmation
+    confirm = input(f"\n❓ Confirmer l'arrêt de {len(selected_containers)} conteneur(s)? (y/N): ").strip().lower()
     
     if confirm not in ['y', 'yes']:
         print("🚫 Arrêt annulé")
         sys.exit(0)
     
-    # Try to stop the container
-    success = stop_container(container_id, container_name)
+    # Ask about stop method
+    print("\n🛠️ Méthode d'arrêt:")
+    print("1. Arrêt normal (docker stop)")
+    print("2. Arrêt forcé (docker kill)")
+    print("3. Essayer normal, puis forcé si échec")
     
-    if not success:
-        # Ask if user wants to force stop
-        force_confirm = input("\n❓ Voulez-vous forcer l'arrêt? (y/N): ").strip().lower()
+    while True:
+        method_choice = input("\nChoisissez (1/2/3, défaut: 1): ").strip()
         
-        if force_confirm in ['y', 'yes']:
-            success = force_stop_container(container_id, container_name)
+        if not method_choice or method_choice == "1":
+            stop_method = "normal"
+            break
+        elif method_choice == "2":
+            stop_method = "force"
+            break
+        elif method_choice == "3":
+            stop_method = "auto"
+            break
+        else:
+            print("❌ Choisissez 1, 2 ou 3")
     
-    if success:
-        print(f"\n🎉 Arrêt terminé avec succès!")
-        print(f"💡 Commandes utiles:")
-        print(f"   docker start {container_name}")
-        print(f"   docker restart {container_name}")
-        print(f"   docker logs {container_name}")
-        print(f"   docker rm {container_name}")
-    else:
-        print(f"\n💥 Échec de l'arrêt")
-        print(f"💡 Conseils:")
-        print(f"   - Vérifiez que le conteneur existe")
-        print(f"   - Essayez l'arrêt forcé")
-        print(f"   - Utilisez 'docker ps -a' pour voir l'état")
+    # Stop containers
+    print(f"\n🚀 Début de l'arrêt de {len(selected_containers)} conteneur(s)")
+    print("=" * 60)
+    
+    successful_stops = []
+    failed_stops = []
+    
+    for i, container in enumerate(selected_containers, 1):
+        container_id = container['id']
+        container_name = container['name']
+        
+        print(f"\n[{i}/{len(selected_containers)}] Traitement: {container_name}")
+        
+        success = False
+        
+        if stop_method in ["normal", "auto"]:
+            success = stop_container(container_id, container_name)
+        
+        if not success and stop_method in ["force", "auto"]:
+            if stop_method == "auto":
+                print("   Tentative d'arrêt forcé...")
+            success = force_stop_container(container_id, container_name)
+        
+        if success:
+            successful_stops.append(container_name)
+        else:
+            failed_stops.append(container_name)
+    
+    # Final summary
+    print("\n" + "=" * 60)
+    print("📊 Résumé final")
+    
+    if successful_stops:
+        print(f"\n✅ Conteneurs arrêtés avec succès ({len(successful_stops)}):")
+        for name in successful_stops:
+            print(f"   - {name}")
+    
+    if failed_stops:
+        print(f"\n❌ Échecs d'arrêt ({len(failed_stops)}):")
+        for name in failed_stops:
+            print(f"   - {name}")
+        
+        print(f"\n💡 Pour les échecs, vous pouvez:")
+        print(f"   - Vérifier les logs: docker logs <container>")
+        print(f"   - Forcer l'arrêt: docker kill <container>")
+        print(f"   - Supprimer si nécessaire: docker rm -f <container>")
+    
+    if successful_stops and not failed_stops:
+        print(f"\n🎉 Tous les conteneurs ont été arrêtés avec succès!")
+    elif failed_stops:
+        print(f"\n⚠️ Arrêt terminé avec {len(failed_stops)} échec(s)")
         sys.exit(1)
 
 if __name__ == "__main__":
