@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import NoteContent from './NoteContent.vue'
+import NoteContent from './note-content/NoteContent.vue'
 
 const noteContent = ref('')
-defineProps<{
+const props = defineProps<{
   isRecording: boolean
 }>()
 </script>
 
 <template>
   <div class="note-content">
-    <div v-if="isRecording || !['', '<p></p>'].includes(noteContent)">
+    <div v-if="props.isRecording || !['', '<p></p>'].includes(noteContent)">
       <h2>Recording Note</h2>
-      <NoteContent :is-recording="isRecording" @noteContentStatus="noteContent = $event" />
+      <NoteContent :is-recording="props.isRecording" @noteContentStatus="noteContent = $event" />
     </div>
     <div v-else>
       <p class="not-recording">Not Recording</p>

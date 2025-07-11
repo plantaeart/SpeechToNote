@@ -5,7 +5,7 @@ export const ENV_LOCAL: ApiConfig = {
   API_TIMEOUT: 10000,
   ENVIRONMENT: 'local',
   DEBUG: true,
-
+  GCP_API_KEY: 'AIzaSyDPvvfLv6p68RIpGikJ8PhkcRnEli3ixkQ',
   ENDPOINTS: {
     SPEAKER_NOTES: '/speaker_notes',
     SPEAKER_COMMANDS: '/speaker_commands',
