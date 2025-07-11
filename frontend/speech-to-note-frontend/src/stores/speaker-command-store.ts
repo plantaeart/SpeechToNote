@@ -56,8 +56,10 @@ export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
   // Actions
   const createCommandFromStore = async (
     command_name: string,
-    command_vocal: string,
+    command_vocal: string[],
     command_description?: string,
+    html_tag_start?: string,
+    html_tag_end?: string,
   ) => {
     setLoading(true)
     clearError()
@@ -67,6 +69,8 @@ export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
         command_name,
         command_vocal,
         command_description,
+        html_tag_start,
+        html_tag_end,
       )
       const response = await service.value.createCommandsFromAPI(request)
 
@@ -87,8 +91,10 @@ export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
   const createCommandsFromStore = async (
     commandsToCreate: Array<{
       command_name: string
-      command_vocal: string
+      command_vocal: string[]
       command_description?: string
+      html_tag_start?: string
+      html_tag_end?: string
     }>,
   ) => {
     setLoading(true)
@@ -137,8 +143,10 @@ export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
     id_command: number,
     updates: {
       command_name?: string
-      command_vocal?: string
+      command_vocal?: string[]
       command_description?: string
+      html_tag_start?: string
+      html_tag_end?: string
     },
   ) => {
     setLoading(true)
@@ -242,8 +250,8 @@ export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
   }
 
   const findCommandByVocalFromStore = (command_vocal: string) => {
-    return commands.value.find(
-      (cmd) => cmd.command_vocal.toLowerCase() === command_vocal.toLowerCase(),
+    return commands.value.find((cmd) =>
+      cmd.command_vocal.some((vocal) => vocal.toLowerCase() === command_vocal.toLowerCase()),
     )
   }
 
@@ -255,7 +263,7 @@ export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
 
   const filterCommandsByVocalFromStore = (searchTerm: string) => {
     return commands.value.filter((cmd) =>
-      cmd.command_vocal.toLowerCase().includes(searchTerm.toLowerCase()),
+      cmd.command_vocal.some((vocal) => vocal.toLowerCase().includes(searchTerm.toLowerCase())),
     )
   }
 

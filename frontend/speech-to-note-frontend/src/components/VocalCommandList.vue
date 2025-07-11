@@ -32,16 +32,20 @@ const refreshing = ref(false)
 const editingCommand = ref<number | null>(null)
 const editCommandData = ref({
   command_name: '',
-  command_vocal: '',
+  command_vocal: '', // Will be comma-separated string for input
   command_description: '',
+  html_tag_start: '',
+  html_tag_end: '',
 })
 
 // Local state for creating new commands
 const creatingCommand = ref(false)
 const createCommandData = ref({
   command_name: '',
-  command_vocal: '',
+  command_vocal: '', // Will be comma-separated string for input
   command_description: '',
+  html_tag_start: '',
+  html_tag_end: '',
 })
 
 // Validation state
@@ -98,8 +102,12 @@ const startEdit = (command: any) => {
   editingCommand.value = command.id_command
   editCommandData.value = {
     command_name: command.command_name,
-    command_vocal: command.command_vocal,
+    command_vocal: Array.isArray(command.command_vocal)
+      ? command.command_vocal.join(', ')
+      : command.command_vocal,
     command_description: command.command_description || '',
+    html_tag_start: command.html_tag_start || '',
+    html_tag_end: command.html_tag_end || '',
   }
 }
 
@@ -125,11 +133,11 @@ const saveEdit = async () => {
     if (hasErrors) {
       let errorMessage = 'Veuillez corriger les erreurs suivantes :'
       if (updateValidationErrors.value.command_name && updateValidationErrors.value.command_vocal) {
-        errorMessage += '\n• Nom de commande requis\n• Déclencheur vocal requis'
+        errorMessage += '\n• Nom de commande requis\n• Déclencheurs vocaux requis'
       } else if (updateValidationErrors.value.command_name) {
         errorMessage += '\n• Nom de commande requis'
       } else if (updateValidationErrors.value.command_vocal) {
-        errorMessage += '\n• Déclencheur vocal requis'
+        errorMessage += '\n• Déclencheurs vocaux requis'
       }
 
       toast.add({
@@ -141,10 +149,18 @@ const saveEdit = async () => {
       return
     }
 
+    // Convert comma-separated string to array
+    const vocalArray = editCommandData.value.command_vocal
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v) => v.length > 0)
+
     await commandStore.updateCommandFromStore(editingCommand.value, {
       command_name: editCommandData.value.command_name,
-      command_vocal: editCommandData.value.command_vocal,
+      command_vocal: vocalArray,
       command_description: editCommandData.value.command_description,
+      html_tag_start: editCommandData.value.html_tag_start,
+      html_tag_end: editCommandData.value.html_tag_end,
     })
     editingCommand.value = null
 
@@ -160,6 +176,8 @@ const cancelEdit = () => {
     command_name: '',
     command_vocal: '',
     command_description: '',
+    html_tag_start: '',
+    html_tag_end: '',
   }
   // Reset validation errors
   updateValidationErrors.value.command_name = false
@@ -178,6 +196,8 @@ const startCreate = () => {
     command_name: '',
     command_vocal: '',
     command_description: '',
+    html_tag_start: '',
+    html_tag_end: '',
   }
 }
 
@@ -202,11 +222,11 @@ const saveCreate = async () => {
   if (hasErrors) {
     let errorMessage = 'Veuillez corriger les erreurs suivantes :'
     if (createValidationErrors.value.command_name && createValidationErrors.value.command_vocal) {
-      errorMessage += '\n• Nom de commande requis\n• Déclencheur vocal requis'
+      errorMessage += '\n• Nom de commande requis\n• Déclencheurs vocaux requis'
     } else if (createValidationErrors.value.command_name) {
       errorMessage += '\n• Nom de commande requis'
     } else if (createValidationErrors.value.command_vocal) {
-      errorMessage += '\n• Déclencheur vocal requis'
+      errorMessage += '\n• Déclencheurs vocaux requis'
     }
 
     toast.add({
@@ -218,10 +238,18 @@ const saveCreate = async () => {
     return
   }
 
+  // Convert comma-separated string to array
+  const vocalArray = createCommandData.value.command_vocal
+    .split(',')
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0)
+
   await commandStore.createCommandFromStore(
     createCommandData.value.command_name,
-    createCommandData.value.command_vocal,
+    vocalArray,
     createCommandData.value.command_description,
+    createCommandData.value.html_tag_start,
+    createCommandData.value.html_tag_end,
   )
   creatingCommand.value = false
 
@@ -235,6 +263,8 @@ const cancelCreate = () => {
     command_name: '',
     command_vocal: '',
     command_description: '',
+    html_tag_start: '',
+    html_tag_end: '',
   }
   // Reset validation errors
   createValidationErrors.value.command_name = false
@@ -387,22 +417,87 @@ const onCreateVocalInput = () => {
             <div class="vocal-trigger-section">
               <label class="field-label">
                 <i class="pi pi-comment"></i>
-                Déclencheur vocal:
+                Déclencheurs vocaux:
               </label>
-              <Tag
-                v-if="editingCommand !== command.id_command"
-                :value="command.command_vocal"
-                severity="info"
-                class="vocal-tag"
-              />
-              <InputText
-                v-else
-                v-model="editCommandData.command_vocal"
-                class="edit-vocal-input"
-                :class="{ 'edit-error': updateValidationErrors.command_vocal }"
-                placeholder="Déclencheur vocal"
-                @input="onEditVocalInput"
-              />
+              <div v-if="editingCommand !== command.id_command" class="vocal-tags-container">
+                <Tag
+                  v-for="(vocal, index) in Array.isArray(command.command_vocal)
+                    ? command.command_vocal
+                    : [command.command_vocal]"
+                  :key="index"
+                  :value="vocal"
+                  severity="info"
+                  class="vocal-tag"
+                />
+              </div>
+              <div v-else>
+                <InputText
+                  v-model="editCommandData.command_vocal"
+                  class="edit-vocal-input"
+                  :class="{ 'edit-error': updateValidationErrors.command_vocal }"
+                  placeholder="Séparez les déclencheurs par des virgules (ex: titre, titres, header)"
+                  @input="onEditVocalInput"
+                />
+                <small class="vocal-help-text">
+                  <i class="pi pi-info-circle"></i>
+                  Séparez chaque déclencheur vocal par une virgule
+                </small>
+              </div>
+            </div>
+
+            <!-- HTML Tags Section -->
+            <div class="html-tags-section">
+              <label class="field-label">
+                <i class="pi pi-code"></i>
+                Balises HTML:
+              </label>
+              <div v-if="editingCommand !== command.id_command" class="html-tags-display">
+                <div class="html-tag-item" v-if="command.html_tag_start || command.html_tag_end">
+                  <span class="html-tag-label">Début:</span>
+                  <Tag
+                    v-if="command.html_tag_start"
+                    :value="command.html_tag_start"
+                    severity="secondary"
+                    class="html-tag"
+                  />
+                  <span v-else class="no-tag">Aucune</span>
+                </div>
+                <div class="html-tag-item" v-if="command.html_tag_start || command.html_tag_end">
+                  <span class="html-tag-label">Fin:</span>
+                  <Tag
+                    v-if="command.html_tag_end"
+                    :value="command.html_tag_end"
+                    severity="secondary"
+                    class="html-tag"
+                  />
+                  <span v-else class="no-tag">Aucune</span>
+                </div>
+                <div v-if="!command.html_tag_start && !command.html_tag_end" class="no-html-tags">
+                  <span class="no-tag">Aucune balise HTML définie</span>
+                </div>
+              </div>
+              <div v-else class="html-tags-edit">
+                <div class="html-tag-edit-item">
+                  <label class="html-tag-edit-label">Balise de début:</label>
+                  <InputText
+                    v-model="editCommandData.html_tag_start"
+                    class="edit-html-input"
+                    placeholder="Ex: <h1>, <p>, <strong>..."
+                  />
+                </div>
+                <div class="html-tag-edit-item">
+                  <label class="html-tag-edit-label">Balise de fin:</label>
+                  <InputText
+                    v-model="editCommandData.html_tag_end"
+                    class="edit-html-input"
+                    placeholder="Ex: </h1>, </p>, </strong>..."
+                  />
+                </div>
+                <small class="html-help-text">
+                  <i class="pi pi-info-circle"></i>
+                  Les balises HTML sont optionnelles et permettent de formater le texte
+                </small>
+              </div>
             </div>
 
             <!-- Description -->
@@ -524,15 +619,49 @@ const onCreateVocalInput = () => {
               <div class="vocal-trigger-section">
                 <label class="field-label">
                   <i class="pi pi-comment"></i>
-                  Déclencheur vocal:
+                  Déclencheurs vocaux:
                 </label>
                 <InputText
                   v-model="createCommandData.command_vocal"
                   class="edit-vocal-input"
                   :class="{ 'edit-error': createValidationErrors.command_vocal }"
-                  placeholder="Déclencheur vocal"
+                  placeholder="Séparez les déclencheurs par des virgules (ex: titre, titres, header)"
                   @input="onCreateVocalInput"
                 />
+                <small class="vocal-help-text">
+                  <i class="pi pi-info-circle"></i>
+                  Séparez chaque déclencheur vocal par une virgule
+                </small>
+              </div>
+
+              <!-- HTML Tags Section -->
+              <div class="html-tags-section">
+                <label class="field-label">
+                  <i class="pi pi-code"></i>
+                  Balises HTML (optionnel):
+                </label>
+                <div class="html-tags-edit">
+                  <div class="html-tag-edit-item">
+                    <label class="html-tag-edit-label">Balise de début:</label>
+                    <InputText
+                      v-model="createCommandData.html_tag_start"
+                      class="edit-html-input"
+                      placeholder="Ex: <h1>, <p>, <strong>..."
+                    />
+                  </div>
+                  <div class="html-tag-edit-item">
+                    <label class="html-tag-edit-label">Balise de fin:</label>
+                    <InputText
+                      v-model="createCommandData.html_tag_end"
+                      class="edit-html-input"
+                      placeholder="Ex: </h1>, </p>, </strong>..."
+                    />
+                  </div>
+                  <small class="html-help-text">
+                    <i class="pi pi-info-circle"></i>
+                    Les balises HTML sont optionnelles et permettent de formater le texte
+                  </small>
+                </div>
               </div>
 
               <!-- Description -->
@@ -698,78 +827,88 @@ const onCreateVocalInput = () => {
   font-size: 0.875rem;
 }
 
+.vocal-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 .vocal-tag {
   font-family: 'Courier New', monospace;
   font-size: 0.9rem;
 }
 
-.description-text {
-  margin: 0;
-  color: var(--text-color-secondary);
-  line-height: 1.6;
-}
-
-.metadata-section {
-  margin-top: 1rem;
-}
-
-.meta-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.meta-label {
+.vocal-help-text,
+.html-help-text {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
   color: var(--text-color-secondary);
-}
-
-.meta-label i {
-  font-size: 0.7rem;
-}
-
-.meta-value {
   font-size: 0.75rem;
-  color: var(--text-color);
+  margin-top: 0.25rem;
+  font-style: italic;
 }
 
-.footer-stats {
-  margin-top: 2rem;
+.html-tags-section {
+  margin-bottom: 1.5rem;
 }
 
-.stats-content {
+.html-tags-display {
+  margin-top: 0.5rem;
+}
+
+.html-tag-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
-.stats-icon {
-  font-size: 1.1rem;
-  color: var(--primary-color);
-}
-
-.stats-text {
-  color: var(--text-color-secondary);
-  font-size: 0.9rem;
+.html-tag-label {
+  font-size: 0.8rem;
   font-weight: 500;
+  color: var(--text-color-secondary);
+  min-width: 60px;
 }
 
-.editing {
-  border: 2px solid var(--primary-color);
-  box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.3);
+.html-tag {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.no-tag {
+  font-size: 0.8rem;
+  color: var(--text-color-secondary);
+  font-style: italic;
+}
+
+.no-html-tags {
+  color: var(--text-color-secondary);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.html-tags-edit {
+  margin-top: 0.5rem;
+}
+
+.html-tag-edit-item {
+  margin-bottom: 0.75rem;
+}
+
+.html-tag-edit-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: 0.25rem;
+}
+
+.edit-html-input {
+  width: 100%;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
 }
 
 .edit-title-input {
@@ -791,7 +930,11 @@ const onCreateVocalInput = () => {
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 }
 
-.edit-vocal-input,
+.edit-vocal-input {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
 .edit-description-input {
   width: 100%;
   margin-top: 0.5rem;
