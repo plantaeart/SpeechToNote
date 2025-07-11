@@ -17,8 +17,8 @@ var titleError = ref(false) // Track title validation error
 var contentError = ref(false) // Track content validation error
 
 // Timer variables
-const timeMaxValue = 30 // 30 seconds countdown
-var recordingTimer = ref(timeMaxValue) // 30 seconds countdown
+const timeMaxValue = 25 // 25 seconds countdown
+var recordingTimer = ref(timeMaxValue) // 25 seconds countdown
 var timerInterval = ref<number | null>(null)
 
 // Define speech commands configuration
