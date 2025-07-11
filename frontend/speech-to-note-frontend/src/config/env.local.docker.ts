@@ -5,7 +5,7 @@ export const ENV_DOCKER: ApiConfig = {
   API_TIMEOUT: 15000,
   ENVIRONMENT: 'docker',
   DEBUG: false,
-
+  GCP_API_KEY: 'YOUR_GCP_API_KEY_HERE',
   ENDPOINTS: {
     SPEAKER_NOTES: '/speaker_notes',
     SPEAKER_COMMANDS: '/speaker_commands',
