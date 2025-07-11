@@ -27,7 +27,7 @@ export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
   const isLoading = computed(() => loading.value)
   const hasError = computed(() => error.value !== null)
   const sortedCommands = computed(() =>
-    [...commands.value].sort((a, b) => b.id_command - a.id_command),
+    [...commands.value].sort((a, b) => a.id_command - b.id_command),
   )
 
   // Helper functions

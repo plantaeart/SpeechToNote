@@ -1,3 +1,4 @@
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios'
 import type { ApiConfig } from '@/models/ApiConfig'
 import { SpeakerCommand } from '../models/SpeakerCommand'
 import type {
@@ -14,11 +15,15 @@ import {
 
 export class SpeakerCommandService {
   private config: ApiConfig
-  private baseUrl: string
+  private axiosInstance: AxiosInstance
 
   constructor(config: ApiConfig) {
     this.config = config
-    this.baseUrl = `${config.API_BASE_URL}${config.ENDPOINTS.SPEAKER_COMMANDS}`
+    this.axiosInstance = axios.create({
+      baseURL: `${config.API_BASE_URL}${config.ENDPOINTS.SPEAKER_COMMANDS}`,
+      timeout: config.API_TIMEOUT,
+      headers: config.REQUEST_CONFIG.headers,
+    })
   }
 
   /**
@@ -26,22 +31,18 @@ export class SpeakerCommandService {
    */
   async createCommandsFromAPI(request: SCCreateRequest): Promise<BaseResponse<SpeakerCommand[]>> {
     try {
-      const response = await fetch(this.baseUrl, {
-        method: 'POST',
-        headers: this.config.REQUEST_CONFIG.headers,
-        body: JSON.stringify(request),
-        signal: AbortSignal.timeout(this.config.API_TIMEOUT),
-      })
+      const response: AxiosResponse<BaseResponse<SpeakerCommand[]>> = await this.axiosInstance.post(
+        '/',
+        request,
+      )
 
-      const data = await response.json()
-
-      if (!ResponseValidator.isBaseResponse<SpeakerCommand[]>(data)) {
+      if (!ResponseValidator.isBaseResponse<SpeakerCommand[]>(response.data)) {
         throw new Error('Invalid response format')
       }
 
-      return data
+      return response.data
     } catch (error) {
-      if (error instanceof Error) {
+      if (axios.isAxiosError(error)) {
         throw new Error(`Failed to create speaker commands: ${error.message}`)
       }
       throw new Error('Failed to create speaker commands: Unknown error')
@@ -53,21 +54,16 @@ export class SpeakerCommandService {
    */
   async getAllCommandsFromAPI(): Promise<BaseResponse<SpeakerCommand[]>> {
     try {
-      const response = await fetch(this.baseUrl, {
-        method: 'GET',
-        headers: this.config.REQUEST_CONFIG.headers,
-        signal: AbortSignal.timeout(this.config.API_TIMEOUT),
-      })
+      const response: AxiosResponse<BaseResponse<SpeakerCommand[]>> =
+        await this.axiosInstance.get('/')
 
-      const data = await response.json()
-
-      if (!ResponseValidator.isBaseResponse<SpeakerCommand[]>(data)) {
+      if (!ResponseValidator.isBaseResponse<SpeakerCommand[]>(response.data)) {
         throw new Error('Invalid response format')
       }
 
-      return data
+      return response.data
     } catch (error) {
-      if (error instanceof Error) {
+      if (axios.isAxiosError(error)) {
         throw new Error(`Failed to get speaker commands: ${error.message}`)
       }
       throw new Error('Failed to get speaker commands: Unknown error')
@@ -79,22 +75,18 @@ export class SpeakerCommandService {
    */
   async updateCommandsFromAPI(request: SCUpdateRequest): Promise<BaseResponse<SpeakerCommand[]>> {
     try {
-      const response = await fetch(this.baseUrl, {
-        method: 'PUT',
-        headers: this.config.REQUEST_CONFIG.headers,
-        body: JSON.stringify(request),
-        signal: AbortSignal.timeout(this.config.API_TIMEOUT),
-      })
+      const response: AxiosResponse<BaseResponse<SpeakerCommand[]>> = await this.axiosInstance.put(
+        '/',
+        request,
+      )
 
-      const data = await response.json()
-
-      if (!ResponseValidator.isBaseResponse<SpeakerCommand[]>(data)) {
+      if (!ResponseValidator.isBaseResponse<SpeakerCommand[]>(response.data)) {
         throw new Error('Invalid response format')
       }
 
-      return data
+      return response.data
     } catch (error) {
-      if (error instanceof Error) {
+      if (axios.isAxiosError(error)) {
         throw new Error(`Failed to update speaker commands: ${error.message}`)
       }
       throw new Error('Failed to update speaker commands: Unknown error')
@@ -106,21 +98,16 @@ export class SpeakerCommandService {
    */
   async deleteCommandByIdFromAPI(id_command: number): Promise<BaseResponse<SingleDeleteResponse>> {
     try {
-      const response = await fetch(`${this.baseUrl}/${id_command}`, {
-        method: 'DELETE',
-        headers: this.config.REQUEST_CONFIG.headers,
-        signal: AbortSignal.timeout(this.config.API_TIMEOUT),
-      })
+      const response: AxiosResponse<BaseResponse<SingleDeleteResponse>> =
+        await this.axiosInstance.delete(`/${id_command}`)
 
-      const data = await response.json()
-
-      if (!ResponseValidator.isBaseResponse<SingleDeleteResponse>(data)) {
+      if (!ResponseValidator.isBaseResponse<SingleDeleteResponse>(response.data)) {
         throw new Error('Invalid response format')
       }
 
-      return data
+      return response.data
     } catch (error) {
-      if (error instanceof Error) {
+      if (axios.isAxiosError(error)) {
         throw new Error(`Failed to delete speaker command: ${error.message}`)
       }
       throw new Error('Failed to delete speaker command: Unknown error')
@@ -134,22 +121,18 @@ export class SpeakerCommandService {
     request: SCDeleteByIdsRequest,
   ): Promise<BaseResponse<DeleteResponse>> {
     try {
-      const response = await fetch(`${this.baseUrl}/ids`, {
-        method: 'DELETE',
-        headers: this.config.REQUEST_CONFIG.headers,
-        body: JSON.stringify(request),
-        signal: AbortSignal.timeout(this.config.API_TIMEOUT),
-      })
+      const response: AxiosResponse<BaseResponse<DeleteResponse>> = await this.axiosInstance.delete(
+        '/ids',
+        { data: request },
+      )
 
-      const data = await response.json()
-
-      if (!ResponseValidator.isBaseResponse<DeleteResponse>(data)) {
+      if (!ResponseValidator.isBaseResponse<DeleteResponse>(response.data)) {
         throw new Error('Invalid response format')
       }
 
-      return data
+      return response.data
     } catch (error) {
-      if (error instanceof Error) {
+      if (axios.isAxiosError(error)) {
         throw new Error(`Failed to delete speaker commands: ${error.message}`)
       }
       throw new Error('Failed to delete speaker commands: Unknown error')
@@ -161,21 +144,16 @@ export class SpeakerCommandService {
    */
   async deleteAllCommandsFromAPI(): Promise<BaseResponse<DeleteResponse>> {
     try {
-      const response = await fetch(this.baseUrl, {
-        method: 'DELETE',
-        headers: this.config.REQUEST_CONFIG.headers,
-        signal: AbortSignal.timeout(this.config.API_TIMEOUT),
-      })
+      const response: AxiosResponse<BaseResponse<DeleteResponse>> =
+        await this.axiosInstance.delete('/')
 
-      const data = await response.json()
-
-      if (!ResponseValidator.isBaseResponse<DeleteResponse>(data)) {
+      if (!ResponseValidator.isBaseResponse<DeleteResponse>(response.data)) {
         throw new Error('Invalid response format')
       }
 
-      return data
+      return response.data
     } catch (error) {
-      if (error instanceof Error) {
+      if (axios.isAxiosError(error)) {
         throw new Error(`Failed to delete all speaker commands: ${error.message}`)
       }
       throw new Error('Failed to delete all speaker commands: Unknown error')
