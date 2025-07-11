@@ -16,6 +16,7 @@ var realtimeTranscript = ref('') // Store real-time transcript
 // Computed property to combine base content with real-time transcript
 const noteContent = computed({
   get: () => {
+    console.log('Combining base content and real-time transcript')
     const base = baseNoteContent.value || ''
     const realtime = realtimeTranscript.value
     if (realtime && base) {
@@ -25,6 +26,7 @@ const noteContent = computed({
     return base + realtime
   },
   set: (value) => {
+    console.log('Setting note content:', value)
     baseNoteContent.value = value
     realtimeTranscript.value = ''
   },

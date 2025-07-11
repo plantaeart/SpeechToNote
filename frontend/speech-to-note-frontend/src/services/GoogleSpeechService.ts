@@ -128,12 +128,6 @@ export class GoogleSpeechService {
         },
       }
 
-      console.log('Sending transcription request:', {
-        encoding: requestBody.config.encoding,
-        sampleRate: requestBody.config.sampleRateHertz,
-        audioSize: audioContent.length,
-      })
-
       const response = await fetch(
         `https://speech.googleapis.com/v1/speech:recognize?key=${this.apiKey}`,
         {
@@ -152,7 +146,6 @@ export class GoogleSpeechService {
       }
 
       const result = await response.json()
-      console.log('Transcription result:', result)
 
       if (result.results && result.results.length > 0) {
         return result.results[0].alternatives[0].transcript || ''
