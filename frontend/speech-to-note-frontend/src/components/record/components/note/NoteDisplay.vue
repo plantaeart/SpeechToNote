@@ -1,17 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import NoteContent from './note-content/NoteContent.vue'
+import { useRecordingStore } from '@/stores/recording-store'
 
-const props = defineProps<{
-  isRecording: boolean
-}>()
+const recordingStore = useRecordingStore()
 </script>
 
 <template>
   <div class="note-content">
     <div>
       <h2>Recording Note</h2>
-      <NoteContent :is-recording="props.isRecording" />
+      <NoteContent />
     </div>
   </div>
 </template>

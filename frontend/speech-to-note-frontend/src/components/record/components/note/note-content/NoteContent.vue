@@ -7,11 +7,8 @@ import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { GoogleSpeechService } from '@/services/GoogleSpeechService'
 import { useSpeakerNoteStore } from '@/stores/speaker-note-store'
+import { useRecordingStore } from '@/stores/recording-store'
 import { isContentEmpty } from '@/utils/stringUtils'
-
-const props = defineProps<{
-  isRecording: boolean
-}>()
 
 var baseNoteContent = ref('') // Store the base content with raw commands
 var realtimeTranscript = ref('') // Store real-time transcript
@@ -19,36 +16,84 @@ var noteTitle = ref('Ma nouvelle note') // Store the note title with default val
 var titleError = ref(false) // Track title validation error
 var contentError = ref(false) // Track content validation error
 
+// Timer variables
+const timeMaxValue = 30 // 30 seconds countdown
+var recordingTimer = ref(timeMaxValue) // 30 seconds countdown
+var timerInterval = ref<number | null>(null)
+
+// Define speech commands configuration
+const speechCommands = [
+  {
+    command_vocal: ['titre', 'titres'],
+    htmlTagStart: '<h1>',
+    htmlTagEnd: '</h1>',
+  },
+  {
+    command_vocal: ['sous-titre', 'sous-titres'],
+    htmlTagStart: '<h2>',
+    htmlTagEnd: '</h2>',
+  },
+  {
+    command_vocal: ['saut de ligne'],
+    htmlTagStart: '',
+    htmlTagEnd: '',
+    isLineBreak: true,
+  },
+]
+
 // Function to process speech commands for display only
 const processSpeechCommands = (text: string): string => {
+  if (!text.trim()) return text
+
+  // Create regex pattern from all commands (flatten arrays)
+  const commandPatterns = speechCommands.flatMap((cmd) => cmd.command_vocal).join('|')
+  const regex = new RegExp(`(${commandPatterns})\\s+(.+?)(?=\\s+(${commandPatterns})|$)`, 'gi')
+
   let processedText = text
+  let result = ''
+  let lastIndex = 0
 
-  // Handle title commands - wrap following text in <h1> tags and add line break
-  processedText = processedText.replace(
-    /(nouveau titre|titre)\s+(.+?)(?=\s+(nouveau titre|titre|saut de ligne)|$)/gi,
-    (match, command, titleText) => {
-      // Capitalize first letter of the title and trim whitespace
-      const trimmedTitle = titleText.trim()
-      const capitalizedTitle = trimmedTitle.charAt(0).toUpperCase() + trimmedTitle.slice(1)
-      return `<h1>${capitalizedTitle}</h1>\n`
-    },
-  )
+  // Process each command match
+  processedText.replace(regex, (match, command, content, nextCommand, offset) => {
+    // Add any text before this command
+    if (offset > lastIndex) {
+      result += text.substring(lastIndex, offset)
+    }
 
-  // Handle "Saut de ligne" command - add line break and process following text
-  processedText = processedText.replace(
-    /saut de ligne\s+(.+?)(?=\s+(nouveau titre|titre|saut de ligne)|$)/gi,
-    (match, followingText) => {
-      // Capitalize first letter of the paragraph and trim whitespace
-      const trimmedText = followingText.trim()
-      const capitalizedText = trimmedText.charAt(0).toUpperCase() + trimmedText.slice(1)
-      return `${capitalizedText}\n`
-    },
-  )
+    // Find the matching command configuration
+    const commandConfig = speechCommands.find((cmd) =>
+      cmd.command_vocal.some((v) => v.toLowerCase() === command.toLowerCase()),
+    )
 
-  // Handle standalone "Saut de ligne" command (without following text)
-  processedText = processedText.replace(/saut de ligne\s*$/gi, '\n')
+    if (commandConfig) {
+      const trimmedContent = content.trim()
+      const capitalizedContent = trimmedContent.charAt(0).toUpperCase() + trimmedContent.slice(1)
 
-  return processedText.trim()
+      if (commandConfig.isLineBreak) {
+        // Handle line break command
+        result += `${capitalizedContent}<br>\n`
+      } else if (commandConfig.htmlTagStart && commandConfig.htmlTagEnd) {
+        // Handle commands with HTML tags
+        result += `${commandConfig.htmlTagStart}${capitalizedContent}${commandConfig.htmlTagEnd}\n`
+      } else {
+        // Default: just add the content
+        result += `${capitalizedContent}\n`
+      }
+    } else {
+      // If no command found, add the original match
+      result += match
+    }
+
+    lastIndex = offset + match.length
+    return match
+  })
+
+  // Add any remaining text
+  if (lastIndex < text.length) {
+    result += text.substring(lastIndex)
+  }
+
+  return result.trim()
 }
 
 // Raw content with commands (for storage/editing)
@@ -88,6 +133,8 @@ const isProcessing = ref(false)
 
 const toast = useToast()
 const speakerNoteStore = useSpeakerNoteStore()
+const recordingStore = useRecordingStore()
+const isInitialized = ref(false)
 
 // Initialize Google Speech service
 const initSpeechService = () => {
@@ -97,6 +144,9 @@ const initSpeechService = () => {
 
 // Handle recording state changes
 const handleRecordingState = async (isRecording: boolean) => {
+  // Prevent handling during initial component mount
+  if (!isInitialized.value) return
+
   console.log('Recording status changed:', isRecording)
   if (isRecording) {
     // Starting to record
@@ -107,10 +157,12 @@ const handleRecordingState = async (isRecording: boolean) => {
 
     if (microphonePermission.value) {
       await startRecording()
+      startTimer() // Start the countdown timer
     }
   } else {
     // Stopping recording
     await stopRecording()
+    stopTimer() // Stop the countdown timer
   }
 }
 
@@ -234,22 +286,58 @@ const stopRecording = async () => {
   }
 }
 
-// Watch for recording changes
+const startTimer = () => {
+  recordingTimer.value = timeMaxValue
+  timerInterval.value = setInterval(() => {
+    recordingTimer.value--
+    if (recordingTimer.value <= 0) {
+      // Timer reached 0, stop recording automatically
+      handleTimeoutStop()
+    }
+  }, 1000)
+}
+
+const stopTimer = () => {
+  if (timerInterval.value) {
+    clearInterval(timerInterval.value)
+    timerInterval.value = null
+  }
+  recordingTimer.value = timeMaxValue
+}
+
+const handleTimeoutStop = () => {
+  stopTimer()
+
+  // Show timeout toast
+  toast.add({
+    severity: 'warn',
+    summary: 'Timeout atteint',
+    detail: `Enregistrement arrêté automatiquement après ${timeMaxValue} secondes`,
+    life: 4000,
+  })
+
+  // Stop recording using store
+  recordingStore.stopRecording()
+}
+
+// Watch for recording changes from store
 watch(
-  () => props.isRecording,
+  () => recordingStore.isRecording,
   (newValue) => handleRecordingState(newValue),
 )
 
 onMounted(async () => {
   initSpeechService()
-  // Handle initial recording state
-  await handleRecordingState(props.isRecording)
+  // Mark as initialized after setup
+  isInitialized.value = true
 })
 
+// Cleanup on unmount
 onUnmounted(() => {
   if (speechService.value?.getRecordingStatus()) {
     speechService.value.stopRecording()
   }
+  stopTimer() // Clean up timer
 })
 
 const saveNote = async () => {
@@ -388,9 +476,12 @@ const onContentChange = () => {
   </Editor>
 
   <!-- Speech recognition status -->
-  <div v-if="props.isRecording || isProcessing" class="speech-status">
+  <div v-if="recordingStore.isRecording || isProcessing" class="speech-status">
     <span v-if="isProcessing" class="processing-indicator"> ⏳ Traitement en cours... </span>
-    <span v-else-if="props.isRecording && microphonePermission" class="listening-indicator">
+    <span
+      v-else-if="recordingStore.isRecording && microphonePermission"
+      class="listening-indicator"
+    >
       🎤 Enregistrement en cours...
     </span>
     <span v-else-if="microphonePermission === false" class="mic-denied">
@@ -400,13 +491,19 @@ const onContentChange = () => {
   </div>
 
   <div class="buttons-display">
+    <!-- Timer display when recording -->
+    <div v-if="recordingStore.isRecording" class="timer-display">
+      <i class="pi pi-clock"></i>
+      <span :class="{ 'timer-warning': recordingTimer <= 10 }"> {{ recordingTimer }}s </span>
+    </div>
+
     <Button
       class="p-button-secondary"
       icon="pi pi-times"
       label="Clear"
       severity="info"
       @click="clearNote()"
-      :disabled="isProcessing || props.isRecording"
+      :disabled="isProcessing || recordingStore.isRecording"
     />
     <Button
       class="p-button-secondary"
@@ -470,10 +567,46 @@ const onContentChange = () => {
 
 .buttons-display {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   margin-top: 1rem;
   gap: 1rem;
 }
+
+.timer-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--surface-100);
+  border: 1px solid var(--surface-300);
+  border-radius: 0.375rem;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-color);
+}
+
+.timer-display i {
+  color: var(--primary-color);
+}
+
+.timer-warning {
+  color: #ef4444 !important;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ...existing code... */
 
 .processing-indicator {
   color: #f59e0b;

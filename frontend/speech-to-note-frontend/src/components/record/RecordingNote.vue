@@ -2,10 +2,7 @@
 import Separator from '../styles/Separator.vue'
 import RecapCommands from './components/command-list/RecapCommands.vue'
 import RecordButton from './components/record-button/RecordButton.vue'
-import { ref } from 'vue'
 import NoteDisplay from './components/note/NoteDisplay.vue'
-
-const isRecording = ref(false)
 </script>
 
 <template>
@@ -13,8 +10,8 @@ const isRecording = ref(false)
     <RecapCommands />
     <Separator :height="'2rem'" />
     <div class="record-note-content">
-      <RecordButton @recordingStatus="isRecording = $event" />
-      <NoteDisplay :isRecording="isRecording" />
+      <RecordButton />
+      <NoteDisplay />
     </div>
   </div>
 </template>
