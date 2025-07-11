@@ -7,6 +7,7 @@ export class GoogleSpeechService {
   private mediaRecorder: MediaRecorder | null = null
   private audioChunks: Blob[] = []
   private isRecording = false
+  private onTranscriptCallback: ((transcript: string) => void) | null = null
 
   constructor() {
     const config = CURRENT_ENV === 'local_docker' ? ENV_DOCKER : ENV_LOCAL
@@ -24,17 +25,22 @@ export class GoogleSpeechService {
     }
   }
 
+  setTranscriptCallback(callback: (transcript: string) => void) {
+    this.onTranscriptCallback = callback
+  }
+
   async startRecording(): Promise<MediaStream | null> {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 16000,
+          sampleRate: 48000, // Changed from 16000 to 48000 for webm
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
         },
       })
 
+      // Use audio/wav instead of webm for better compatibility
       this.mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus',
       })
@@ -42,13 +48,26 @@ export class GoogleSpeechService {
       this.audioChunks = []
       this.isRecording = true
 
-      this.mediaRecorder.ondataavailable = (event) => {
+      this.mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
           this.audioChunks.push(event.data)
+
+          // Only process real-time transcription for larger chunks (reduce API calls)
+          if (this.onTranscriptCallback && event.data.size > 10000) {
+            try {
+              const audioBlob = new Blob([event.data], { type: 'audio/webm' })
+              const transcript = await this.transcribeAudio(audioBlob)
+              if (transcript) {
+                this.onTranscriptCallback(transcript)
+              }
+            } catch (error) {
+              console.warn('Real-time transcription error:', error)
+            }
+          }
         }
       }
 
-      this.mediaRecorder.start(1000) // Collect data every second
+      this.mediaRecorder.start(2000) // Collect data every 2 seconds for real-time updates
       return stream
     } catch (error) {
       console.error('Failed to start recording:', error)
@@ -85,21 +104,35 @@ export class GoogleSpeechService {
 
   private async transcribeAudio(audioBlob: Blob): Promise<string> {
     try {
-      // Convert audio to base64
+      // Convert webm to base64
       const base64Audio = await this.blobToBase64(audioBlob)
+      const audioContent = base64Audio.split(',')[1] // Remove data:audio/webm;base64, prefix
+
+      // Validate that we have actual audio content
+      if (!audioContent || audioContent.length < 100) {
+        console.warn('Audio content too small, skipping transcription')
+        return ''
+      }
 
       const requestBody = {
         config: {
-          encoding: 'WEBM_OPUS',
-          sampleRateHertz: 16000,
+          encoding: 'WEBM_OPUS', // Correct encoding for webm with opus codec
+          sampleRateHertz: 48000, // Match the sample rate we're recording at
           languageCode: 'fr-FR',
           enableAutomaticPunctuation: true,
           model: 'latest_short',
+          audioChannelCount: 1,
         },
         audio: {
-          content: base64Audio.split(',')[1], // Remove data:audio/webm;base64, prefix
+          content: audioContent,
         },
       }
+
+      console.log('Sending transcription request:', {
+        encoding: requestBody.config.encoding,
+        sampleRate: requestBody.config.sampleRateHertz,
+        audioSize: audioContent.length,
+      })
 
       const response = await fetch(
         `https://speech.googleapis.com/v1/speech:recognize?key=${this.apiKey}`,
@@ -113,10 +146,13 @@ export class GoogleSpeechService {
       )
 
       if (!response.ok) {
-        throw new Error(`Google Speech API error: ${response.status}`)
+        const errorText = await response.text()
+        console.error('Google Speech API error response:', errorText)
+        throw new Error(`Google Speech API error: ${response.status} - ${errorText}`)
       }
 
       const result = await response.json()
+      console.log('Transcription result:', result)
 
       if (result.results && result.results.length > 0) {
         return result.results[0].alternatives[0].transcript || ''
