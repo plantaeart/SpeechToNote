@@ -11,8 +11,27 @@ class SCCreateRequest(BaseModel):
         schema_extra = {
             "example": {
                 "data": [
-                    {"command_name": "save_note", "command_vocal": "sauvegarder la note", "command_description": "Sauvegarde la note en cours"},
-                    {"command_name": "export_pdf", "command_vocal": "exporter en PDF"}
+                    {
+                        "command_name": "titre",
+                        "command_vocal": ["titre", "titres"],
+                        "command_description": "Formate le texte comme un titre principal",
+                        "html_tag_start": "<h1>",
+                        "html_tag_end": "</h1>"
+                    },
+                    {
+                        "command_name": "sous_titre",
+                        "command_vocal": ["sous-titre", "sous titre", "sous titres"],
+                        "command_description": "Formate le texte comme un sous-titre",
+                        "html_tag_start": "<h2>",
+                        "html_tag_end": "</h2>"
+                    },
+                    {
+                        "command_name": "saut_ligne",
+                        "command_vocal": ["saut de ligne", "nouvelle ligne"],
+                        "command_description": "Insère un saut de ligne",
+                        "html_tag_start": "<br>",
+                        "html_tag_end": ""
+                    }
                 ]
             }
         }
@@ -26,8 +45,17 @@ class SCUpdateRequest(BaseModel):
         schema_extra = {
             "example": {
                 "data": [
-                    {"id_command": 1, "command_name": "updated_save"},
-                    {"id_command": 2, "command_description": "Updated description only"}
+                    {
+                        "id_command": 1,
+                        "command_name": "titre_principal",
+                        "command_vocal": ["titre", "titres", "titre principal"],
+                        "html_tag_start": "<h1 class='main-title'>",
+                        "html_tag_end": "</h1>"
+                    },
+                    {
+                        "id_command": 2,
+                        "command_description": "Description mise à jour seulement"
+                    }
                 ]
             }
         }

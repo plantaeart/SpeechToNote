@@ -9,9 +9,11 @@ class TestSpeakerCommand:
         test_data = {
             "data": [
                 {
-                    "command_name": "save_note",
-                    "command_vocal": "sauvegarder la note",
-                    "command_description": "Sauvegarde la note en cours"
+                    "command_name": "titre",
+                    "command_vocal": ["titre", "titres"],
+                    "command_description": "Formate comme un titre principal",
+                    "html_tag_start": "<h1>",
+                    "html_tag_end": "</h1>"
                 }
             ]
         }
@@ -25,21 +27,65 @@ class TestSpeakerCommand:
         assert len(response_data["data"]) == 1
         
         created_command = response_data["data"][0]
-        assert created_command["command_name"] == "save_note"
-        assert created_command["command_vocal"] == "sauvegarder la note"
-        assert created_command["command_description"] == "Sauvegarde la note en cours"
+        assert created_command["command_name"] == "titre"
+        assert created_command["command_vocal"] == ["titre", "titres"]
+        assert created_command["command_description"] == "Formate comme un titre principal"
+        assert created_command["html_tag_start"] == "<h1>"
+        assert created_command["html_tag_end"] == "</h1>"
         assert "id_command" in created_command
         assert "created_at" in created_command
         assert "updated_at" in created_command
-        assert created_command["schema_version"] == "1.0.0"
-    
-    def test_create_speaker_command_without_description(self, test_client: TestClient):
-        """Test creating speaker command without description"""
+        assert created_command["schema_version"] == "1.0.1"
+
+    def test_migration_from_old_schema(self, test_client: TestClient):
+        """Test that old schema documents are migrated when retrieved"""
+        from app import get_collection
+        from app.migrations.speaker_command_migrations import SpeakerCommandMigrations
+        
+        # Insert an old schema document directly
+        collection = get_collection("COMMANDS")
+        if collection is not None:
+            old_doc = {
+                "id_command": 999,
+                "command_name": "old_command",
+                "command_vocal": "single vocal command",  # Old string format
+                "command_description": "Old format command",
+                "schema_version": "1.0.0"  # Old version
+            }
+            collection.insert_one(old_doc)
+            
+            # Manually run migration before retrieving
+            SpeakerCommandMigrations.run_migrations(collection)
+            
+            # Retrieve all commands - should show migrated data
+            response = test_client.get("/speaker_commands/")
+            
+            assert response.status_code == 200
+            response_data = response.json()
+            
+            # Find the migrated command
+            migrated_command = None
+            for cmd in response_data["data"]:
+                if cmd["id_command"] == 999:
+                    migrated_command = cmd
+                    break
+            
+            assert migrated_command is not None
+            assert migrated_command["schema_version"] == "1.0.1"
+            assert isinstance(migrated_command["command_vocal"], list)
+            assert migrated_command["command_vocal"] == ["single vocal command"]
+            assert "html_tag_start" in migrated_command
+            assert migrated_command["html_tag_start"] == ""  # Should be empty string from migration
+            assert "html_tag_end" in migrated_command
+            assert migrated_command["html_tag_end"] == ""  # Should be empty string from migration
+
+    def test_create_speaker_command_without_html_tags(self, test_client: TestClient):
+        """Test creating speaker command without HTML tags"""
         test_data = {
             "data": [
                 {
-                    "command_name": "export_pdf",
-                    "command_vocal": "exporter en PDF"
+                    "command_name": "pause",
+                    "command_vocal": ["pause", "arrêt"]
                 }
             ]
         }
@@ -51,23 +97,87 @@ class TestSpeakerCommand:
         assert response_data["status_code"] == 201
         
         created_command = response_data["data"][0]
-        assert created_command["command_name"] == "export_pdf"
-        assert created_command["command_vocal"] == "exporter en PDF"
-        assert created_command["command_description"] is None
+        assert created_command["command_name"] == "pause"
+        assert created_command["command_vocal"] == ["pause", "arrêt"]
+        assert created_command["html_tag_start"] is None
+        assert created_command["html_tag_end"] is None
+
+    def test_create_speaker_command_with_line_break(self, test_client: TestClient):
+        """Test creating speaker command for line break"""
+        test_data = {
+            "data": [
+                {
+                    "command_name": "saut_ligne",
+                    "command_vocal": ["saut de ligne", "nouvelle ligne"],
+                    "command_description": "Insère un saut de ligne",
+                    "html_tag_start": "<br>",
+                    "html_tag_end": ""
+                }
+            ]
+        }
+        
+        response = test_client.post("/speaker_commands/", json=test_data)
+        
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["status_code"] == 201
+        
+        created_command = response_data["data"][0]
+        assert created_command["command_vocal"] == ["saut de ligne", "nouvelle ligne"]
+        assert created_command["html_tag_start"] == "<br>"
+        assert created_command["html_tag_end"] == ""
+
+    def test_create_speaker_command_empty_vocal_list(self, test_client: TestClient):
+        """Test creating speaker command with empty vocal commands list"""
+        test_data = {
+            "data": [
+                {
+                    "command_name": "test",
+                    "command_vocal": []
+                }
+            ]
+        }
+        
+        response = test_client.post("/speaker_commands/", json=test_data)
+        
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["status_code"] == 400
+        assert "must contain at least one non-empty vocal command" in response_data["message"]
+
+    def test_create_speaker_command_empty_vocal_strings(self, test_client: TestClient):
+        """Test creating speaker command with empty strings in vocal commands"""
+        test_data = {
+            "data": [
+                {
+                    "command_name": "test",
+                    "command_vocal": ["", "  ", "valid"]
+                }
+            ]
+        }
+        
+        response = test_client.post("/speaker_commands/", json=test_data)
+        
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["status_code"] == 400
+        assert "must contain at least one non-empty vocal command" in response_data["message"]
     
     def test_create_multiple_speaker_commands(self, test_client: TestClient):
         """Test creating multiple speaker commands"""
         test_data = {
             "data": [
                 {
-                    "command_name": "save_note",
-                    "command_vocal": "sauvegarder",
-                    "command_description": "Save command"
+                    "command_name": "titre",
+                    "command_vocal": ["titre", "titres"],
+                    "html_tag_start": "<h1>",
+                    "html_tag_end": "</h1>"
                 },
                 {
-                    "command_name": "delete_note",
-                    "command_vocal": "supprimer",
-                    "command_description": "Delete command"
+                    "command_name": "sous_titre",
+                    "command_vocal": ["sous-titre", "sous titre"],
+                    "html_tag_start": "<h2>",
+                    "html_tag_end": "</h2>"
                 }
             ]
         }
@@ -119,13 +229,17 @@ class TestSpeakerCommand:
             "data": [
                 {
                     "command_name": "command_1",
-                    "command_vocal": "première commande",
-                    "command_description": "First command"
+                    "command_vocal": ["première commande"],
+                    "command_description": "First command",
+                    "html_tag_start": "<p>",
+                    "html_tag_end": "</p>"
                 },
                 {
                     "command_name": "command_2",
-                    "command_vocal": "deuxième commande",
-                    "command_description": "Second command"
+                    "command_vocal": ["deuxième commande"],
+                    "command_description": "Second command",
+                    "html_tag_start": "<p>",
+                    "html_tag_end": "</p>"
                 }
             ]
         }
@@ -156,8 +270,10 @@ class TestSpeakerCommand:
             "data": [
                 {
                     "command_name": "original_command",
-                    "command_vocal": "commande originale",
-                    "command_description": "Original description"
+                    "command_vocal": ["commande originale"],
+                    "command_description": "Original description",
+                    "html_tag_start": "<p>",
+                    "html_tag_end": "</p>"
                 }
             ]
         }
@@ -171,7 +287,10 @@ class TestSpeakerCommand:
                 {
                     "id_command": command_id,
                     "command_name": "updated_command",
-                    "command_description": "Updated description"
+                    "command_vocal": ["commande mise à jour", "updated command"],
+                    "command_description": "Updated description",
+                    "html_tag_start": "<h3>",
+                    "html_tag_end": "</h3>"
                 }
             ]
         }
@@ -185,9 +304,44 @@ class TestSpeakerCommand:
         
         updated_command = response_data["data"][0]
         assert updated_command["command_name"] == "updated_command"
+        assert updated_command["command_vocal"] == ["commande mise à jour", "updated command"]
         assert updated_command["command_description"] == "Updated description"
-        assert updated_command["command_vocal"] == "commande originale"  # Should keep original vocal
-    
+        assert updated_command["html_tag_start"] == "<h3>"
+        assert updated_command["html_tag_end"] == "</h3>"
+
+    def test_update_speaker_command_empty_vocal_list(self, test_client: TestClient):
+        """Test updating speaker command with empty vocal commands list"""
+        # First create a command
+        create_data = {
+            "data": [
+                {
+                    "command_name": "test_command",
+                    "command_vocal": ["test"],
+                    "html_tag_start": "<p>",
+                    "html_tag_end": "</p>"
+                }
+            ]
+        }
+        create_response = test_client.post("/speaker_commands/", json=create_data)
+        command_id = create_response.json()["data"][0]["id_command"]
+        
+        # Try to update with empty vocal list
+        update_data = {
+            "data": [
+                {
+                    "id_command": command_id,
+                    "command_vocal": []
+                }
+            ]
+        }
+        
+        response = test_client.put("/speaker_commands/", json=update_data)
+        
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["status_code"] == 400
+        assert "must contain at least one non-empty vocal command" in response_data["message"]
+
     def test_update_nonexistent_speaker_command(self, test_client: TestClient):
         """Test updating a speaker command that doesn't exist"""
         update_data = {
@@ -213,8 +367,10 @@ class TestSpeakerCommand:
             "data": [
                 {
                     "command_name": "command_to_delete",
-                    "command_vocal": "à supprimer",
-                    "command_description": "This will be deleted"
+                    "command_vocal": ["à supprimer"],
+                    "command_description": "This will be deleted",
+                    "html_tag_start": "<p>",
+                    "html_tag_end": "</p>"
                 }
             ]
         }
@@ -251,13 +407,17 @@ class TestSpeakerCommand:
             "data": [
                 {
                     "command_name": "command_1",
-                    "command_vocal": "première",
-                    "command_description": "First"
+                    "command_vocal": ["première"],
+                    "command_description": "First",
+                    "html_tag_start": "<p>",
+                    "html_tag_end": "</p>"
                 },
                 {
                     "command_name": "command_2",
-                    "command_vocal": "deuxième", 
-                    "command_description": "Second"
+                    "command_vocal": ["deuxième"],
+                    "command_description": "Second",
+                    "html_tag_start": "<p>",
+                    "html_tag_end": "</p>"
                 }
             ]
         }
@@ -291,18 +451,24 @@ class TestSpeakerCommand:
             "data": [
                 {
                     "command_name": "command_1",
-                    "command_vocal": "première commande",
-                    "command_description": "First command"
+                    "command_vocal": ["première commande"],
+                    "command_description": "First command",
+                    "html_tag_start": "<p>",
+                    "html_tag_end": "</p>"
                 },
                 {
                     "command_name": "command_2",
-                    "command_vocal": "deuxième commande",
-                    "command_description": "Second command"
+                    "command_vocal": ["deuxième commande"],
+                    "command_description": "Second command",
+                    "html_tag_start": "<p>",
+                    "html_tag_end": "</p>"
                 },
                 {
                     "command_name": "command_3",
-                    "command_vocal": "troisième commande",
-                    "command_description": "Third command"
+                    "command_vocal": ["troisième commande"],
+                    "command_description": "Third command",
+                    "html_tag_start": "<p>",
+                    "html_tag_end": "</p>"
                 }
             ]
         }

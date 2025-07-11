@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List
 from ..models.response.base_response_model import BaseResponse
 from ..models.speaker_command.sc_request_model import SCCreateRequest, SCUpdateRequest, SCDeleteByIdsRequest
+from ..configs.config import CURRENT_SC_SCHEMA_VERSION
 
 router_speaker_command = APIRouter(prefix="/speaker_commands", tags=["speaker_commands"])
 
@@ -26,14 +27,17 @@ async def create_speaker_command(request: SCCreateRequest):
             next_id = (last_command["id_command"] + 1) if last_command and "id_command" in last_command else 1
             
             for speaker_command_create in request.data:
-                # No need to check required fields - Pydantic validates automatically
+                # Validate that command_vocal is not empty and doesn't contain empty strings
+                if not speaker_command_create.command_vocal or not all(vocal.strip() for vocal in speaker_command_create.command_vocal):
+                    return BaseResponse.error("command_vocal must contain at least one non-empty vocal command", 400)
+                
                 # Convert Pydantic model to dict for MongoDB
                 speaker_command_dump = speaker_command_create.model_dump()
                 
                 # Add auto-incremented id_command and timestamps (local time)
                 current_time = datetime.now()  # Use local timezone
                 speaker_command_dump["id_command"] = next_id
-                speaker_command_dump["schema_version"] = "1.0.0"
+                speaker_command_dump["schema_version"] = CURRENT_SC_SCHEMA_VERSION
                 speaker_command_dump["created_at"] = current_time
                 speaker_command_dump["updated_at"] = current_time
                 
@@ -81,6 +85,11 @@ async def update_speaker_commands(request: SCUpdateRequest):
         if collection is not None:
             updated_commands = []
             for speaker_command_update in request.data:
+                # Validate command_vocal if provided
+                if speaker_command_update.command_vocal is not None:
+                    if not speaker_command_update.command_vocal or not all(vocal.strip() for vocal in speaker_command_update.command_vocal):
+                        return BaseResponse.error("command_vocal must contain at least one non-empty vocal command", 400)
+                
                 # id_command is guaranteed to exist because of SpeakerCommandUpdate model
                 id_command = speaker_command_update.id_command
                 

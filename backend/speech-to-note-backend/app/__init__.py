@@ -11,7 +11,7 @@ print("[STARTUP] 🚀 SpeechToNote API Initialization", flush=True)
 print("="*60, flush=True)
 
 # Import smart configuration
-from app.configs.config import MONGO_URI, DATABASE_NAME, COLLECTIONS
+from app.configs.config import MONGO_URI, DATABASE_NAME, COLLECTIONS, CURRENT_APPLICATION_VERSION
 from .migrations.speaker_note_migrations import SpeakerNoteMigrations
 from .migrations.speaker_command_migrations import SpeakerCommandMigrations
 from .config_cors import CORS_CONFIG
@@ -83,7 +83,7 @@ async def app_lifespan(app):
 app = FastAPI(
     title="SpeechToNote API",
     description="API for managing speaker notes and commands",
-    version="1.2.0",
+    version=CURRENT_APPLICATION_VERSION,
     lifespan=app_lifespan
 )
 
