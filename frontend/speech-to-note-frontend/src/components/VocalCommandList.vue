@@ -74,27 +74,6 @@ const fetchCommands = async () => {
   }
 }
 
-// Watch for errors from store and display as toast
-watch(
-  () => commandStore.error,
-  (newError) => {
-    if (newError) {
-      toast.add({
-        severity: 'error',
-        summary: 'Erreur',
-        detail: newError,
-        life: 5000,
-      })
-      // Clear the error from store after showing toast
-      commandStore.clearError()
-    }
-  },
-)
-
-const clearError = () => {
-  commandStore.clearError()
-}
-
 const deleteCommand = async (event: Event, id_command: number, commandName: string) => {
   console.log(`Start deleting command with ID: ${id_command} - Name: ${commandName}`)
   confirm.require({
