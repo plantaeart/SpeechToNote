@@ -2,9 +2,12 @@
 import Editor from 'primevue/editor'
 import Button from 'primevue/button'
 import Toast from 'primevue/toast'
+import InputText from 'primevue/inputtext'
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { GoogleSpeechService } from '@/services/GoogleSpeechService'
+import { useSpeakerNoteStore } from '@/stores/speaker-note-store'
+import { isContentEmpty } from '@/utils/stringUtils'
 
 const props = defineProps<{
   isRecording: boolean
@@ -12,6 +15,9 @@ const props = defineProps<{
 
 var baseNoteContent = ref('') // Store the base content with raw commands
 var realtimeTranscript = ref('') // Store real-time transcript
+var noteTitle = ref('Ma nouvelle note') // Store the note title with default value
+var titleError = ref(false) // Track title validation error
+var contentError = ref(false) // Track content validation error
 
 // Function to process speech commands for display only
 const processSpeechCommands = (text: string): string => {
@@ -65,8 +71,14 @@ const noteContent = computed({
 })
 
 // Processed content for display (with commands converted to HTML)
-const displayContent = computed(() => {
-  return processSpeechCommands(noteContent.value)
+const displayContent = computed({
+  get: () => {
+    return processSpeechCommands(noteContent.value)
+  },
+  set: (value) => {
+    // When user edits manually, update the raw content directly
+    noteContent.value = value
+  },
 })
 
 // Google Speech service setup
@@ -75,6 +87,7 @@ const microphonePermission = ref<boolean | null>(null)
 const isProcessing = ref(false)
 
 const toast = useToast()
+const speakerNoteStore = useSpeakerNoteStore()
 
 // Initialize Google Speech service
 const initSpeechService = () => {
@@ -239,20 +252,81 @@ onUnmounted(() => {
   }
 })
 
-const saveNote = () => {
-  // Logic to save the note goes here
-  console.log('Note saved:', noteContent.value)
-  toast.add({
-    severity: 'success',
-    summary: 'Success',
-    detail: 'Note saved successfully!',
-    life: 3000,
-  })
+const saveNote = async () => {
+  let hasErrors = false
+
+  // Validate title
+  if (!noteTitle.value || noteTitle.value.trim().length === 0) {
+    titleError.value = true
+    hasErrors = true
+  } else {
+    titleError.value = false
+  }
+
+  // Validate content - check for meaningful text, not just HTML tags
+  if (isContentEmpty(noteContent.value)) {
+    contentError.value = true
+    hasErrors = true
+  } else {
+    contentError.value = false
+  }
+
+  // Show error if validation fails
+  if (hasErrors) {
+    let errorMessage = 'Veuillez corriger les erreurs suivantes :'
+    if (titleError.value && contentError.value) {
+      errorMessage += '\n• Titre requis\n• Contenu requis'
+    } else if (titleError.value) {
+      errorMessage += '\n• Titre requis'
+    } else if (contentError.value) {
+      errorMessage += '\n• Contenu requis'
+    }
+
+    toast.add({
+      severity: 'warn',
+      summary: 'Champs requis',
+      detail: errorMessage,
+      life: 4000,
+    })
+    return
+  }
+
+  try {
+    console.log('Saving note with content:', noteContent.value)
+    // Use the title from input and raw content for saving
+    await speakerNoteStore.createNoteFromStore(noteTitle.value.trim(), noteContent.value, [])
+
+    console.log('Note saved successfully:', speakerNoteStore.hasError)
+    if (!speakerNoteStore.hasError) {
+      toast.add({
+        severity: 'success',
+        summary: 'Success',
+        detail: 'Note saved successfully!',
+        life: 3000,
+      })
+      // Clear the note content and reset title after saving
+      clearNote()
+    }
+  } catch (error) {
+    console.error('Error saving note:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Failed to save note. Please try again.',
+      life: 5000,
+    })
+  } finally {
+    speakerNoteStore.clearError()
+  }
 }
 
 const clearNote = () => {
+  noteContent.value = ''
   baseNoteContent.value = ''
   realtimeTranscript.value = ''
+  noteTitle.value = 'Ma nouvelle note' // Reset title to default
+  titleError.value = false // Clear title error
+  contentError.value = false // Clear content error
   toast.add({
     severity: 'info',
     summary: 'Cleared',
@@ -260,15 +334,54 @@ const clearNote = () => {
     life: 3000,
   })
 }
+
+// Clear title error when user starts typing
+const onTitleInput = () => {
+  if (titleError.value && noteTitle.value && noteTitle.value.trim().length > 0) {
+    titleError.value = false
+  }
+}
+
+// Clear content error when user starts typing
+const onContentChange = () => {
+  if (contentError.value && !isContentEmpty(noteContent.value)) {
+    contentError.value = false
+  }
+}
 </script>
 
 <template>
   <Toast />
-  <Editor v-model="displayContent" editorStyle="font-size: 1.25rem" class="note-text">
+
+  <!-- Title Input -->
+  <div class="title-section">
+    <label for="note-title" class="title-label">
+      <i class="pi pi-file-edit"></i>
+      Titre de la note:
+    </label>
+    <InputText
+      id="note-title"
+      v-model="noteTitle"
+      placeholder="Entrez le titre de votre note"
+      class="title-input"
+      :class="{ 'title-error': titleError }"
+      @input="onTitleInput"
+    />
+  </div>
+
+  <Editor
+    v-model="displayContent"
+    editorStyle="font-size: 1.25rem"
+    class="note-text"
+    :class="{ 'content-error': contentError }"
+    @text-change="onContentChange"
+  >
     <template v-slot:toolbar>
       <span class="ql-formats">
-        <button v-tooltip.bottom="'Header'" class="ql-header" value="1"></button>
-        <button v-tooltip.bottom="'Header'" class="ql-header" value="2"></button>
+        <button class="ql-header" value="1"></button>
+        <button class="ql-header" value="2"></button>
+      </span>
+      <span class="ql-formats">
         <button class="ql-list" value="bullet"></button>
       </span>
     </template>
@@ -306,9 +419,53 @@ const clearNote = () => {
 </template>
 
 <style scoped>
+.title-section {
+  margin-bottom: 1rem;
+}
+
+.title-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.title-label i {
+  font-size: 0.875rem;
+  color: var(--primary-color);
+}
+
+.title-input {
+  width: 100%;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.title-input.title-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444;
+}
+
+.title-input.title-error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
 .note-text {
   font-size: 1.25rem;
   min-width: 50vw;
+}
+
+.note-text.content-error :deep(.ql-editor) {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444;
+}
+
+.note-text.content-error :deep(.ql-toolbar) {
+  border-color: #ef4444;
 }
 
 .buttons-display {

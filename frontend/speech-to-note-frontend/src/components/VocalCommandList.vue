@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { useSpeakerCommandStore } from '@/stores/speaker-command-store'
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, computed, nextTick, watch } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
-import Message from 'primevue/message'
+import Toast from 'primevue/toast'
 import Tag from 'primevue/tag'
 import Badge from 'primevue/badge'
 import Divider from 'primevue/divider'
 import ConfirmPopup from 'primevue/confirmpopup'
 import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 import { IS_DEBUG } from '@/config/env.current'
 import { formatDate } from '@/utils/dateUtils'
 import InputText from 'primevue/inputtext'
@@ -17,12 +18,11 @@ import FloatingLoader from './FloatingLoader.vue'
 
 const commandStore = useSpeakerCommandStore()
 const confirm = useConfirm()
+const toast = useToast()
 
 // Reactive computed properties from store
 const commands = computed(() => commandStore.sortedCommands)
 const isLoading = computed(() => commandStore.isLoading)
-const hasError = computed(() => commandStore.hasError)
-const error = computed(() => commandStore.error)
 const hasCommands = computed(() => commandStore.hasCommands)
 
 // Local state for refresh functionality
@@ -74,6 +74,23 @@ const fetchCommands = async () => {
   }
 }
 
+// Watch for errors from store and display as toast
+watch(
+  () => commandStore.error,
+  (newError) => {
+    if (newError) {
+      toast.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: newError,
+        life: 5000,
+      })
+      // Clear the error from store after showing toast
+      commandStore.clearError()
+    }
+  },
+)
+
 const clearError = () => {
   commandStore.clearError()
 }
@@ -109,22 +126,52 @@ const startEdit = (command: any) => {
 
 const saveEdit = async () => {
   if (editingCommand.value) {
+    let hasErrors = false
+
     // Validate required fields
-    updateValidationErrors.value.command_name = !editCommandData.value.command_name.trim()
-    updateValidationErrors.value.command_vocal = !editCommandData.value.command_vocal.trim()
-
-    if (!updateValidationErrors.value.command_name && !updateValidationErrors.value.command_vocal) {
-      await commandStore.updateCommandFromStore(editingCommand.value, {
-        command_name: editCommandData.value.command_name,
-        command_vocal: editCommandData.value.command_vocal,
-        command_description: editCommandData.value.command_description,
-      })
-      editingCommand.value = null
-
-      // Restore scroll position after DOM update
-      await nextTick()
-      window.scrollTo(0, scrollPosition.value)
+    if (!editCommandData.value.command_name.trim()) {
+      updateValidationErrors.value.command_name = true
+      hasErrors = true
+    } else {
+      updateValidationErrors.value.command_name = false
     }
+
+    if (!editCommandData.value.command_vocal.trim()) {
+      updateValidationErrors.value.command_vocal = true
+      hasErrors = true
+    } else {
+      updateValidationErrors.value.command_vocal = false
+    }
+
+    if (hasErrors) {
+      let errorMessage = 'Veuillez corriger les erreurs suivantes :'
+      if (updateValidationErrors.value.command_name && updateValidationErrors.value.command_vocal) {
+        errorMessage += '\n• Nom de commande requis\n• Déclencheur vocal requis'
+      } else if (updateValidationErrors.value.command_name) {
+        errorMessage += '\n• Nom de commande requis'
+      } else if (updateValidationErrors.value.command_vocal) {
+        errorMessage += '\n• Déclencheur vocal requis'
+      }
+
+      toast.add({
+        severity: 'warn',
+        summary: 'Champs requis',
+        detail: errorMessage,
+        life: 4000,
+      })
+      return
+    }
+
+    await commandStore.updateCommandFromStore(editingCommand.value, {
+      command_name: editCommandData.value.command_name,
+      command_vocal: editCommandData.value.command_vocal,
+      command_description: editCommandData.value.command_description,
+    })
+    editingCommand.value = null
+
+    // Restore scroll position after DOM update
+    await nextTick()
+    window.scrollTo(0, scrollPosition.value)
   }
 }
 
@@ -156,21 +203,51 @@ const startCreate = () => {
 }
 
 const saveCreate = async () => {
+  let hasErrors = false
+
   // Validate required fields
-  createValidationErrors.value.command_name = !createCommandData.value.command_name.trim()
-  createValidationErrors.value.command_vocal = !createCommandData.value.command_vocal.trim()
-
-  if (!createValidationErrors.value.command_name && !createValidationErrors.value.command_vocal) {
-    await commandStore.createCommandFromStore(
-      createCommandData.value.command_name,
-      createCommandData.value.command_vocal,
-      createCommandData.value.command_description,
-    )
-    creatingCommand.value = false
-
-    await nextTick()
-    window.scrollTo(0, scrollPosition.value)
+  if (!createCommandData.value.command_name.trim()) {
+    createValidationErrors.value.command_name = true
+    hasErrors = true
+  } else {
+    createValidationErrors.value.command_name = false
   }
+
+  if (!createCommandData.value.command_vocal.trim()) {
+    createValidationErrors.value.command_vocal = true
+    hasErrors = true
+  } else {
+    createValidationErrors.value.command_vocal = false
+  }
+
+  if (hasErrors) {
+    let errorMessage = 'Veuillez corriger les erreurs suivantes :'
+    if (createValidationErrors.value.command_name && createValidationErrors.value.command_vocal) {
+      errorMessage += '\n• Nom de commande requis\n• Déclencheur vocal requis'
+    } else if (createValidationErrors.value.command_name) {
+      errorMessage += '\n• Nom de commande requis'
+    } else if (createValidationErrors.value.command_vocal) {
+      errorMessage += '\n• Déclencheur vocal requis'
+    }
+
+    toast.add({
+      severity: 'warn',
+      summary: 'Champs requis',
+      detail: errorMessage,
+      life: 4000,
+    })
+    return
+  }
+
+  await commandStore.createCommandFromStore(
+    createCommandData.value.command_name,
+    createCommandData.value.command_vocal,
+    createCommandData.value.command_description,
+  )
+  creatingCommand.value = false
+
+  await nextTick()
+  window.scrollTo(0, scrollPosition.value)
 }
 
 const cancelCreate = () => {
@@ -188,10 +265,37 @@ const cancelCreate = () => {
     window.scrollTo(0, scrollPosition.value)
   })
 }
+
+// Clear validation errors when user starts typing
+const onEditNameInput = () => {
+  if (updateValidationErrors.value.command_name && editCommandData.value.command_name.trim()) {
+    updateValidationErrors.value.command_name = false
+  }
+}
+
+const onEditVocalInput = () => {
+  if (updateValidationErrors.value.command_vocal && editCommandData.value.command_vocal.trim()) {
+    updateValidationErrors.value.command_vocal = false
+  }
+}
+
+const onCreateNameInput = () => {
+  if (createValidationErrors.value.command_name && createCommandData.value.command_name.trim()) {
+    createValidationErrors.value.command_name = false
+  }
+}
+
+const onCreateVocalInput = () => {
+  if (createValidationErrors.value.command_vocal && createCommandData.value.command_vocal.trim()) {
+    createValidationErrors.value.command_vocal = false
+  }
+}
 </script>
 
 <template>
   <div class="vocal-command-list">
+    <Toast />
+
     <div class="header">
       <div class="title-section">
         <i class="pi pi-microphone title-icon"></i>
@@ -216,17 +320,6 @@ const cancelCreate = () => {
         />
       </div>
     </div>
-
-    <!-- Error Display -->
-    <Message
-      v-if="hasError"
-      severity="error"
-      :closable="true"
-      @close="clearError"
-      class="error-message"
-    >
-      {{ error }}
-    </Message>
 
     <!-- Commands Grid - always show when we have commands -->
     <div class="commands-grid">
@@ -257,8 +350,9 @@ const cancelCreate = () => {
                 v-else
                 v-model="editCommandData.command_name"
                 class="edit-title-input"
+                :class="{ 'edit-error': updateValidationErrors.command_name }"
                 placeholder="Nom de la commande"
-                :invalid="updateValidationErrors.command_name"
+                @input="onEditNameInput"
               />
             </div>
             <div class="command-actions">
@@ -326,8 +420,9 @@ const cancelCreate = () => {
                 v-else
                 v-model="editCommandData.command_vocal"
                 class="edit-vocal-input"
+                :class="{ 'edit-error': updateValidationErrors.command_vocal }"
                 placeholder="Déclencheur vocal"
-                :invalid="updateValidationErrors.command_vocal"
+                @input="onEditVocalInput"
               />
             </div>
 
@@ -402,8 +497,9 @@ const cancelCreate = () => {
                 v-if="creatingCommand"
                 v-model="createCommandData.command_name"
                 class="edit-title-input"
+                :class="{ 'edit-error': createValidationErrors.command_name }"
                 placeholder="Nom de la commande"
-                :invalid="createValidationErrors.command_name"
+                @input="onCreateNameInput"
               />
             </div>
             <div class="command-actions">
@@ -454,8 +550,9 @@ const cancelCreate = () => {
                 <InputText
                   v-model="createCommandData.command_vocal"
                   class="edit-vocal-input"
+                  :class="{ 'edit-error': createValidationErrors.command_vocal }"
                   placeholder="Déclencheur vocal"
-                  :invalid="createValidationErrors.command_vocal"
+                  @input="onCreateVocalInput"
                 />
               </div>
 
@@ -701,6 +798,18 @@ const cancelCreate = () => {
   font-size: 1.25rem;
   font-weight: 600;
   width: 100%;
+}
+
+.edit-title-input.edit-error,
+.edit-vocal-input.edit-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444;
+}
+
+.edit-title-input.edit-error:focus,
+.edit-vocal-input.edit-error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 }
 
 .edit-vocal-input,
