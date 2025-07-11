@@ -217,23 +217,6 @@ watch(
     }
   },
 )
-
-// Watch for errors from store and display as toast
-watch(
-  () => noteStore.error,
-  (newError) => {
-    if (newError) {
-      toast.add({
-        severity: 'error',
-        summary: 'Erreur',
-        detail: newError,
-        life: 5000,
-      })
-      // Clear the error from store after showing toast
-      noteStore.clearError()
-    }
-  },
-)
 </script>
 
 <template>
