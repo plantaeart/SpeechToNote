@@ -5,6 +5,7 @@ import {
 } from '@/config/env.current'
 import ENV_LOCAL from '@/config/env.local'
 import ENV_DOCKER from '@/config/env.local.docker'
+import axios from 'axios'
 
 export class GoogleSpeechService {
   private apiKey: string
@@ -130,11 +131,11 @@ export class GoogleSpeechService {
 
       const requestBody = {
         config: {
-          encoding: 'WEBM_OPUS', // Correct encoding for webm with opus codec
-          sampleRateHertz: 48000, // Match the sample rate we're recording at
+          encoding: 'WEBM_OPUS',
+          sampleRateHertz: 48000,
           languageCode: 'fr-FR',
-          enableAutomaticPunctuation: true,
-          model: 'latest_short',
+          enableAutomaticPunctuation: false,
+          model: 'default',
           audioChannelCount: 1,
         },
         audio: {
@@ -142,24 +143,17 @@ export class GoogleSpeechService {
         },
       }
 
-      const response = await fetch(
+      const response = await axios.post(
         `https://speech.googleapis.com/v1/speech:recognize?key=${this.apiKey}`,
+        requestBody,
         {
-          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(requestBody),
         },
       )
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Google Speech API error response:', errorText)
-        throw new Error(`Google Speech API error: ${response.status} - ${errorText}`)
-      }
-
-      const result = await response.json()
+      const result = response.data
 
       if (result.results && result.results.length > 0) {
         return result.results[0].alternatives[0].transcript || ''
@@ -168,6 +162,12 @@ export class GoogleSpeechService {
       return ''
     } catch (error) {
       console.error('Transcription error:', error)
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error details:', error.response?.data)
+        throw new Error(
+          `Google Speech API error: ${error.response?.status} - ${error.response?.data}`,
+        )
+      }
       throw error
     }
   }
