@@ -339,7 +339,7 @@ onMounted(async () => {
 
 // Cleanup on unmount
 onUnmounted(() => {
-  if (speechService.value?.getRecordingStatus()) {
+  if (speechService.value && speechService.value.getRecordingStatus()) {
     speechService.value.stopRecording()
   }
   stopTimer() // Clean up timer
