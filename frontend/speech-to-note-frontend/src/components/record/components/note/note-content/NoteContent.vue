@@ -71,6 +71,9 @@ const processSpeechCommands = (text: string): string => {
       if (commandConfig.isLineBreak) {
         // Handle line break command
         result += `${capitalizedContent}<br>\n`
+      } else if (commandConfig.htmlTagStart === '<ul>') {
+        // Handle bullet list processing
+        result += processBulletList(capitalizedContent)
       } else if (commandConfig.htmlTagStart && commandConfig.htmlTagEnd) {
         // Handle commands with HTML tags
         result += `${commandConfig.htmlTagStart}${capitalizedContent}${commandConfig.htmlTagEnd}\n`
@@ -96,6 +99,64 @@ const processSpeechCommands = (text: string): string => {
   }
 
   return result.trim()
+}
+
+// Function to process bullet list content
+const processBulletList = (content: string): string => {
+  // Split content by "stop" to create list items
+  const parts = content.split(/\s+stop\s+/i)
+  let result = '<ul>\n'
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i].trim()
+    if (!part) continue
+
+    // Check if this part contains any command that would end the list
+    const commands = speechCommands.value
+    const commandPatterns = commands.flatMap((cmd) => cmd.command_vocal).join('|')
+    const commandRegex = new RegExp(`\\b(${commandPatterns})\\b`, 'i')
+
+    const commandMatch = part.match(commandRegex)
+
+    if (commandMatch) {
+      // Found a command in this part
+      const commandIndex = part.toLowerCase().indexOf(commandMatch[0].toLowerCase())
+      const beforeCommand = part.substring(0, commandIndex).trim()
+      const fromCommand = part.substring(commandIndex).trim()
+
+      // Add the part before the command as a list item if it exists
+      if (beforeCommand) {
+        result += `  <li>${beforeCommand}</li>\n`
+      }
+
+      // Close the list
+      result += '</ul>\n'
+
+      // Process the command part normally using the main processing function
+      if (fromCommand) {
+        result += processSpeechCommands(fromCommand) + '\n'
+      }
+
+      break
+    } else {
+      // Regular list item (no command found)
+      result += `  <li>${part}</li>\n`
+    }
+  }
+
+  // If we didn't encounter any command, close the list normally
+  if (
+    !parts.some((part) => {
+      const commands = speechCommands.value
+      const commandPatterns = commands.flatMap((cmd) => cmd.command_vocal).join('|')
+      const commandRegex = new RegExp(`\\b(${commandPatterns})\\b`, 'i')
+      return commandRegex.test(part)
+    })
+  ) {
+    result += '</ul>\n'
+  }
+
+  return result
 }
 
 // Raw content with commands (for storage/editing)
@@ -473,11 +534,12 @@ const onContentChange = () => {
   >
     <template v-slot:toolbar>
       <span class="ql-formats">
-        <button class="ql-header" value="1"></button>
-        <button class="ql-header" value="2"></button>
+        <button v-tooltip.bottom="'Header 1'" class="ql-header" value="1"></button>
+        <button v-tooltip.bottom="'Header 2'" class="ql-header" value="2"></button>
       </span>
       <span class="ql-formats">
-        <button class="ql-list" value="bullet"></button>
+        <button v-tooltip.bottom="'Bullet List'" class="ql-list" value="ordered"></button>
+        <button v-tooltip.bottom="'Bullet List'" class="ql-list" value="bullet"></button>
       </span>
     </template>
   </Editor>
