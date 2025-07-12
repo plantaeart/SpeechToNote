@@ -580,6 +580,10 @@ watch(
   padding: 1rem;
   border-radius: var(--border-radius);
   background: var(--surface-ground);
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .content-text {
