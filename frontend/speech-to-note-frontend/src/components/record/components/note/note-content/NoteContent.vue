@@ -538,7 +538,6 @@ const onContentChange = () => {
         <button v-tooltip.bottom="'Header 2'" class="ql-header" value="2"></button>
       </span>
       <span class="ql-formats">
-        <button v-tooltip.bottom="'Bullet List'" class="ql-list" value="ordered"></button>
         <button v-tooltip.bottom="'Bullet List'" class="ql-list" value="bullet"></button>
       </span>
     </template>
