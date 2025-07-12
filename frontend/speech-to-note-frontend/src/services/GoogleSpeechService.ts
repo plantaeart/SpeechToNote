@@ -5,21 +5,26 @@ import {
 } from '@/config/env.current'
 import ENV_LOCAL from '@/config/env.local'
 import ENV_DOCKER from '@/config/env.local.docker'
+import { useRecordingStore } from '@/stores/recording-store'
 import axios from 'axios'
 
 export class GoogleSpeechService {
   private apiKey: string
   private mediaRecorder: MediaRecorder | null = null
   private audioChunks: Blob[] = []
-  private isRecording = false
   private onTranscriptCallback: ((transcript: string) => void) | null = null
   private transcriptionInterval: number | null = null
+  private recordingStore = useRecordingStore()
 
   constructor() {
     const config = CURRENT_ENV === 'local_docker' ? ENV_DOCKER : ENV_LOCAL
     this.apiKey = config.GCP_API_KEY
   }
 
+  /**
+   * Requests permission to use the microphone.
+   * @returns Promise<boolean> - Returns true if permission is granted, false otherwise.
+   */
   async requestMicrophonePermission(): Promise<boolean> {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -31,10 +36,18 @@ export class GoogleSpeechService {
     }
   }
 
+  /**
+   * Sets the callback function to handle real-time transcription updates.
+   * @param callback - Function to call with the real-time transcript.
+   */
   setTranscriptCallback(callback: (transcript: string) => void) {
     this.onTranscriptCallback = callback
   }
 
+  /**
+   * Starts recording audio from the microphone and sets up real-time transcription.
+   * @returns Promise<MediaStream | null> - Returns the MediaStream if successful, null otherwise.
+   */
   async startRecording(): Promise<MediaStream | null> {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -51,7 +64,6 @@ export class GoogleSpeechService {
       })
 
       this.audioChunks = []
-      this.isRecording = true
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -59,11 +71,16 @@ export class GoogleSpeechService {
         }
       }
 
-      this.mediaRecorder.start(GCP_STT_API_COLLECT_EVERY_X_MS) // Collect data every 1 second
+      this.mediaRecorder.start(GCP_STT_API_COLLECT_EVERY_X_MS) // Collect data every X ms
 
-      // Start continuous transcription every 2 seconds
+      // Start continuous transcription every X ms
       this.transcriptionInterval = setInterval(async () => {
-        if (this.audioChunks.length > 0 && this.onTranscriptCallback) {
+        // Check if recording is still active before transcribing
+        if (
+          this.audioChunks.length > 0 &&
+          this.onTranscriptCallback &&
+          this.recordingStore.isRecording
+        ) {
           try {
             // Take all current chunks for transcription
             const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' })
@@ -76,7 +93,7 @@ export class GoogleSpeechService {
             console.warn('Real-time transcription error:', error)
           }
         }
-      }, GCP_STT_API_TRANSCRIBE_EVERY_X_MS) // Transcribe every 2 seconds
+      }, GCP_STT_API_TRANSCRIBE_EVERY_X_MS)
 
       return stream
     } catch (error) {
@@ -85,14 +102,18 @@ export class GoogleSpeechService {
     }
   }
 
+  /**
+   * Stops the recording and returns the final transcript.
+   * @returns Promise<string> - Returns the final transcript after stopping the recording.
+   */
   stopRecording(): Promise<string> {
     return new Promise((resolve, reject) => {
-      if (!this.mediaRecorder || !this.isRecording) {
+      if (!this.mediaRecorder) {
         resolve('')
         return
       }
 
-      // Clear the transcription interval
+      // Clear the transcription interval immediately
       if (this.transcriptionInterval) {
         clearInterval(this.transcriptionInterval)
         this.transcriptionInterval = null
@@ -109,7 +130,6 @@ export class GoogleSpeechService {
       }
 
       this.mediaRecorder.stop()
-      this.isRecording = false
 
       if (this.mediaRecorder.stream) {
         this.mediaRecorder.stream.getTracks().forEach((track) => track.stop())
@@ -117,6 +137,11 @@ export class GoogleSpeechService {
     })
   }
 
+  /**
+   * Transcribes the audio blob using Google Speech-to-Text API.
+   * @param audioBlob - The audio blob to transcribe.
+   * @returns Promise<string> - Returns the transcribed text.
+   */
   private async transcribeAudio(audioBlob: Blob): Promise<string> {
     try {
       // Convert webm to base64
@@ -172,6 +197,11 @@ export class GoogleSpeechService {
     }
   }
 
+  /**
+   * Converts a Blob to a Base64 string.
+   * @param blob - The Blob to convert.
+   * @returns Promise<string> - Returns the Base64 string representation of the Blob.
+   */
   private blobToBase64(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -181,7 +211,11 @@ export class GoogleSpeechService {
     })
   }
 
+  /**
+   * Returns the current recording status.
+   * @returns boolean - True if currently recording, false otherwise.
+   */
   getRecordingStatus(): boolean {
-    return this.isRecording
+    return this.recordingStore.isRecording
   }
 }

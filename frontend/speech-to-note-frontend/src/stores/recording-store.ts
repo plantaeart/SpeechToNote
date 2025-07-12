@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 export const useRecordingStore = defineStore('recording', () => {
   const isRecording = ref(false)

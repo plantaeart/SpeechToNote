@@ -39,15 +39,17 @@ const hasCommands = computed(() => commandStore.hasCommands)
           >
             <span class="command-item">
               <span class="command-name">{{ command.command_name }}</span>
-              <Tag
-                v-for="(vocal, vocalIndex) in Array.isArray(command.command_vocal)
-                  ? command.command_vocal
-                  : [command.command_vocal]"
-                :key="vocalIndex"
-                :value="vocal"
-                severity="info"
-                class="vocal-tag"
-              />
+              <div>
+                <Tag
+                  v-for="(vocal, vocalIndex) in Array.isArray(command.command_vocal)
+                    ? command.command_vocal
+                    : [command.command_vocal]"
+                  :key="vocalIndex"
+                  :value="vocal"
+                  severity="info"
+                  class="vocal-tag"
+                />
+              </div>
             </span>
             <span v-if="index < commands.length - 1" class="separator">|</span>
           </div>
