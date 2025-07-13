@@ -1,7 +1,5 @@
 import subprocess
-import os
 import sys
-from datetime import datetime
 
 def run_command(cmd, capture_output=False):
     """Execute a command and return the result"""
@@ -15,31 +13,6 @@ def run_command(cmd, capture_output=False):
     except subprocess.CalledProcessError as e:
         return None, str(e), e.returncode
 
-def get_existing_images():
-    """Get list of existing FastAPI images"""
-    print("🔍 Recherche des images speechtonote existantes...")
-    cmd = "docker images speechtonote --format \"table {{.Repository}}\\t{{.Tag}}\\t{{.CreatedAt}}\\t{{.Size}}\""
-    stdout, stderr, returncode = run_command(cmd, capture_output=True)
-    
-    if returncode == 0 and stdout:
-        print("\n📦 Images existantes:")
-        print(stdout)
-        return True, stdout
-    else:
-        print("ℹ️ Aucune image speechtonote trouvée")
-        return False, ""
-
-def get_available_tags():
-    """Get list of available tags for speechtonote images"""
-    cmd = "docker images speechtonote --format \"{{.Tag}}\""
-    stdout, stderr, returncode = run_command(cmd, capture_output=True)
-    
-    if returncode == 0 and stdout:
-        tags = [tag.strip() for tag in stdout.split('\n') if tag.strip()]
-        return tags
-    else:
-        return []
-
 def get_docker_status():
     """Check if Docker is running"""
     print("🐳 Vérification de Docker...")
@@ -52,6 +25,31 @@ def get_docker_status():
     else:
         print("✅ Docker est disponible")
         return True
+
+def get_existing_images(image_name):
+    """Get list of existing images"""
+    print(f"🔍 Recherche des images {image_name} existantes...")
+    cmd = f"docker images {image_name} --format \"table {{{{.Repository}}}}\\t{{{{.Tag}}}}\\t{{{{.CreatedAt}}}}\\t{{{{.Size}}}}\""
+    stdout, stderr, returncode = run_command(cmd, capture_output=True)
+    
+    if returncode == 0 and stdout:
+        print("\n📦 Images existantes:")
+        print(stdout)
+        return True, stdout
+    else:
+        print(f"ℹ️ Aucune image {image_name} trouvée")
+        return False, ""
+
+def get_available_tags(image_name):
+    """Get list of available tags for images"""
+    cmd = f"docker images {image_name} --format \"{{{{.Tag}}}}\""
+    stdout, stderr, returncode = run_command(cmd, capture_output=True)
+    
+    if returncode == 0 and stdout:
+        tags = [tag.strip() for tag in stdout.split('\n') if tag.strip()]
+        return tags
+    else:
+        return []
 
 def get_containers_using_image(image_name):
     """Get list of containers using the specified image"""
@@ -109,15 +107,15 @@ def stop_and_remove_containers(containers):
     
     return success
 
-def delete_image(tag):
+def delete_image(image_name, tag):
     """Delete the Docker image and associated containers"""
-    image_name = f"speechtonote:{tag}"
+    full_image_name = f"{image_name}:{tag}"
     
-    print(f"\n🗑️ Suppression de l'image: {image_name}")
+    print(f"\n🗑️ Suppression de l'image: {full_image_name}")
     
     # First, check for containers using this image
     print("🔍 Recherche des conteneurs utilisant cette image...")
-    containers = get_containers_using_image(image_name)
+    containers = get_containers_using_image(full_image_name)
     
     if containers:
         print(f"⚠️ Trouvé {len(containers)} conteneur(s) utilisant cette image:")
@@ -138,8 +136,8 @@ def delete_image(tag):
         print("✅ Aucun conteneur utilisant cette image")
     
     # Now delete the image
-    print(f"\n🗑️ Suppression de l'image: {image_name}")
-    cmd = f'docker rmi {image_name}'
+    print(f"\n🗑️ Suppression de l'image: {full_image_name}")
+    cmd = f'docker rmi {full_image_name}'
     
     print(f"\n🔨 Commande: {cmd}")
     print("⏳ Suppression en cours...")
@@ -147,7 +145,7 @@ def delete_image(tag):
     stdout, stderr, returncode = run_command(cmd, capture_output=True)
     
     if returncode == 0:
-        print(f"✅ Image {image_name} supprimée avec succès!")
+        print(f"✅ Image {full_image_name} supprimée avec succès!")
         if stdout:
             print(f"📊 Détails: {stdout}")
         return True
@@ -155,15 +153,15 @@ def delete_image(tag):
         print(f"❌ Erreur lors de la suppression: {stderr}")
         return False
 
-def force_delete_image(tag):
+def force_delete_image(image_name, tag):
     """Force delete the Docker image and associated containers"""
-    image_name = f"speechtonote:{tag}"
+    full_image_name = f"{image_name}:{tag}"
     
-    print(f"\n🗑️ Suppression forcée de l'image: {image_name}")
+    print(f"\n🗑️ Suppression forcée de l'image: {full_image_name}")
     
     # Force remove containers first
     print("🔍 Recherche des conteneurs utilisant cette image...")
-    containers = get_containers_using_image(image_name)
+    containers = get_containers_using_image(full_image_name)
     
     if containers:
         print(f"⚠️ Suppression forcée de {len(containers)} conteneur(s):")
@@ -181,7 +179,7 @@ def force_delete_image(tag):
                 print(f"❌ Erreur lors de la suppression forcée: {stderr}")
     
     # Force delete the image
-    cmd = f'docker rmi -f {image_name}'
+    cmd = f'docker rmi -f {full_image_name}'
     
     print(f"\n🔨 Commande: {cmd}")
     print("⏳ Suppression forcée en cours...")
@@ -189,7 +187,7 @@ def force_delete_image(tag):
     stdout, stderr, returncode = run_command(cmd, capture_output=True)
     
     if returncode == 0:
-        print(f"✅ Image {image_name} supprimée avec succès (forcée)!")
+        print(f"✅ Image {full_image_name} supprimée avec succès (forcée)!")
         if stdout:
             print(f"📊 Détails: {stdout}")
         return True
@@ -197,24 +195,41 @@ def force_delete_image(tag):
         print(f"❌ Erreur lors de la suppression forcée: {stderr}")
         return False
 
-def main():
-    """Main function"""
-    print("🗑️ Script de suppression d'image Docker pour SpeechToNote")
+def choose_service():
+    """Let user choose between FastAPI and Vue.js"""
+    print("🎯 Choix du service à supprimer")
+    print("=" * 40)
+    print("1. FastAPI (Backend)")
+    print("2. Vue.js (Frontend)")
+    print("3. Quitter")
+    
+    while True:
+        choice = input("\n🔖 Quel service voulez-vous supprimer? (1-3): ").strip()
+        
+        if choice == "1":
+            return "fastapi", "speechtonote"
+        elif choice == "2":
+            return "vuejs", "speech-to-note-frontend"
+        elif choice == "3":
+            print("👋 Au revoir!")
+            sys.exit(0)
+        else:
+            print("❌ Choix invalide. Veuillez saisir 1, 2 ou 3.")
+
+def delete_service_images(service_type, image_name):
+    """Delete images for a specific service"""
+    print(f"\n🗑️ Script de suppression d'images Docker {service_type.upper()} pour SpeechToNote")
     print("=" * 60)
     
-    # Check Docker status
-    if not get_docker_status():
-        sys.exit(1)
-    
     # Show existing images
-    has_images, images_output = get_existing_images()
+    has_images, images_output = get_existing_images(image_name)
     
     if not has_images:
-        print("🚫 Aucune image speechtonote à supprimer")
-        sys.exit(0)
+        print(f"🚫 Aucune image {image_name} à supprimer")
+        return False
     
     # Get available tags
-    available_tags = get_available_tags()
+    available_tags = get_available_tags(image_name)
     
     print("\n" + "=" * 60)
     
@@ -256,38 +271,61 @@ def main():
     
     # Confirmation
     print(f"\n📋 Résumé:")
-    print(f"   Image à supprimer: speechtonote:{tag}")
+    print(f"   Image à supprimer: {image_name}:{tag}")
     print(f"   ⚠️ Les conteneurs associés seront également supprimés")
     
     confirm = input("\n❓ Confirmer la suppression? (y/N): ").strip().lower()
     
     if confirm not in ['y', 'yes']:
         print("🚫 Suppression annulée")
-        sys.exit(0)
+        return False
     
     # Try to delete the image (with containers)
-    success = delete_image(tag)
+    success = delete_image(image_name, tag)
     
     if not success:
         # Ask if user wants to force delete
         force_confirm = input("\n❓ Voulez-vous forcer la suppression? (y/N): ").strip().lower()
         
         if force_confirm in ['y', 'yes']:
-            success = force_delete_image(tag)
+            success = force_delete_image(image_name, tag)
     
     if success:
         print(f"\n🎉 Suppression terminée avec succès!")
         print(f"\n📦 Images restantes:")
         # Show remaining images
-        has_remaining, _ = get_existing_images()
+        has_remaining, _ = get_existing_images(image_name)
         if not has_remaining:
-            print("ℹ️ Aucune image speechtonote restante")
+            print(f"ℹ️ Aucune image {image_name} restante")
+        return True
     else:
         print(f"\n💥 Échec de la suppression")
         print(f"💡 Conseils:")
         print(f"   - Vérifiez les permissions Docker")
         print(f"   - Essayez la suppression forcée")
         print(f"   - Utilisez 'docker system prune' pour nettoyer complètement")
+        return False
+
+def main():
+    """Main function"""
+    print("🗑️ Script de suppression d'images Docker pour SpeechToNote")
+    print("=" * 60)
+    
+    # Check Docker status
+    if not get_docker_status():
+        sys.exit(1)
+    
+    print("\n" + "=" * 60)
+    
+    # Choose service
+    service_type, image_name = choose_service()
+    
+    print(f"\n✅ Service sélectionné: {service_type.upper()}")
+    
+    # Delete images for the selected service
+    success = delete_service_images(service_type, image_name)
+    
+    if not success:
         sys.exit(1)
 
 if __name__ == "__main__":
@@ -299,3 +337,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n💥 Erreur inattendue: {e}")
         sys.exit(1)
+    
+    input("Press Enter to continue...")
