@@ -15,6 +15,7 @@ class DuckDBMongoDB:
         self.mongo_db = None
         self.duck_conn = None
         
+    # Initialize the DuckDBMongoDB connection with MongoDB URI and database name
     def connect(self):
         """Establish connections to both MongoDB Docker container and DuckDB"""
         try:
@@ -38,6 +39,8 @@ class DuckDBMongoDB:
             logger.error(f"Failed to connect: {e}")
             raise
     
+    # Sync MongoDB collection to DuckDB table for analytics
+    # If table_name is not provided, it defaults to the collection name
     def sync_mongo_to_duckdb(self, collection_name: str, table_name: Optional[str] = None):
         """Sync MongoDB collection to DuckDB table for analytics"""
         if not table_name:
@@ -81,6 +84,7 @@ class DuckDBMongoDB:
             logger.error(f"Failed to sync {collection_name}: {e}")
             raise
 
+    # Execute query on DuckDB and return results
     def query_duckdb(self, query: str) -> List[Dict]:
         """Execute query on DuckDB and return results"""
         try:
@@ -101,12 +105,15 @@ class DuckDBMongoDB:
             logger.error(f"DuckDB query failed: {e}")
             raise
 
+    # Get MongoDB collection reference
+    # Raises an exception if MongoDB connection is not established
     def get_mongo_collection(self, collection_name: str):
         """Get MongoDB collection reference"""
         if self.mongo_db is None:
             raise Exception("MongoDB connection not established. Call connect() first.")
         return self.mongo_db[collection_name]
     
+    # Close all connections
     def close(self):
         """Close all connections"""
         if self.mongo_client:
