@@ -50,12 +50,16 @@ At the end the __speaker__ will be able to review the note and modify it by hand
 * Init the VueJS frontend (with Pinia) 🟩
   * Create the models services 🟩
   * Create the pinia stores 🟩
-  * Implement the business logic of record speech to text 🟪
-  * Add the logic of the "commands" to structure the note 🟪
-  * Make possible to edit the notes 🟪
-  * Make possible to delete the notes 🟪
+  * Implement the business logic of record speech to text 🟩
+  * Add the logic of the "commands" to structure the note 🟩
+  * Make possible to edit the notes 🟩
+  * Make possible to delete the notes 🟩
   * Make possible to retrieve commands 🟩
   * Make possible to edit commands 🟩
   * Make possible to add commands 🟩
 * Init the mongodb local docker 🟩
 * Init the fast api local docker 🟩
+* Create Kubernetes environments 🟩
+* Create duckdb connection to local docker mongodb 🟩
+* Test duckdb operations on SPEAKER_NOTES Collections 🟩
+
