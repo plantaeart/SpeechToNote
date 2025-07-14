@@ -12,6 +12,8 @@ class DatabaseSpeakerNotesOperations:
     def __init__(self, connection: DuckDBMongoDB):
         self.connection = connection
 
+    # Method to search speaker notes using DuckDB's text search capabilities
+    # It allows searching by content or title, with a limit on the number of results
     def search_speaker_notes(self, search_term: str, collection: str = COLLECTIONS["SPEAKER_NOTES"], limit: int = 50) -> List[Dict]:
         """Search speaker_notes using DuckDB's text search capabilities"""
         try:
@@ -52,6 +54,8 @@ class DatabaseSpeakerNotesOperations:
             logger.error(f"Search failed for term '{search_term}': {e}")
             return []
 
+    # Get speaker notes by date range using DuckDB
+    # If no dates are provided, it returns all notes ordered by creation date
     def get_speaker_notes_by_date_range(self, start_date: Optional[str] = None, end_date: Optional[str] = None, collection: str = COLLECTIONS["SPEAKER_NOTES"]) -> List[Dict]:
         """Get speaker_notes within a date range using DuckDB. If no dates, return all notes."""
         try:
@@ -96,6 +100,8 @@ class DatabaseSpeakerNotesOperations:
             logger.error(f"Date range query failed: {e}")
             return []
 
+    # Get comprehensive analytics on speaker_notes using DuckDB aggregation
+    # It provides total count, notes by date, average content length, and most active hours
     def get_speaker_notes_analytics(self, collection: str = COLLECTIONS["SPEAKER_NOTES"], days: int = 30) -> Dict[str, Any]:
         """Get comprehensive analytics on speaker_notes using DuckDB aggregation"""
         try:
@@ -153,6 +159,8 @@ class DatabaseSpeakerNotesOperations:
             logger.error(f"Analytics query failed: {e}")
             return {}
 
+    # Get most recent speaker notes
+    # It retrieves the latest notes ordered by creation date, with a limit on the number of
     def get_recent_speaker_notes(self, limit: int = 10, collection: str = COLLECTIONS["SPEAKER_NOTES"]) -> List[Dict]:
         """Get most recent speaker_notes"""
         try:
@@ -188,6 +196,8 @@ class DatabaseSpeakerNotesOperations:
             logger.error(f"Recent speaker_notes query failed: {e}")
             return []
 
+    # Export collection to pandas DataFrame for analysis
+    # It retrieves all notes and converts them to a DataFrame, handling commands and date fields
     def export_to_dataframe(self, collection: str = COLLECTIONS["SPEAKER_NOTES"]) -> Optional[pd.DataFrame]:
         """Export collection to pandas DataFrame for analysis"""
         try:
@@ -215,6 +225,8 @@ class DatabaseSpeakerNotesOperations:
             logger.error(f"DataFrame export failed: {e}")
             return None
 
+    # Get word frequency analysis from note contents
+    # It retrieves the most common words in the notes, excluding short words and empty strings
     def get_word_frequency(self, collection: str = COLLECTIONS["SPEAKER_NOTES"], top_n: int = 20) -> List[Dict]:
         """Get word frequency analysis from note contents"""
         try:
