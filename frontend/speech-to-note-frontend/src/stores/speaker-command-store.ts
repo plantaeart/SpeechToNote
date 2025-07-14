@@ -1,13 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { SpeakerCommandService } from '../services/SpeakerCommandService'
-
-import ENV_LOCAL from '../config/env.local'
-import ENV_DOCKER from '../config/env.local.docker'
 import type { SpeakerCommand } from '@/models/SpeakerCommand'
 import { ResponseValidator, type BaseResponse } from '@/models/response/BaseResponse'
 import { SCRequestBuilder } from '@/models/request/SCRequest'
-import { CURRENT_ENV } from '@/config/env.current'
+import { getEnvironmentConfig } from '@/config/env.current'
 
 export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
   // State
@@ -17,9 +14,7 @@ export const useSpeakerCommandStore = defineStore('speakerCommand', () => {
   const lastResponse = ref<BaseResponse | null>(null)
 
   // Service instance
-  const service = computed(
-    () => new SpeakerCommandService(CURRENT_ENV === 'local_docker' ? ENV_DOCKER : ENV_LOCAL),
-  )
+  const service = computed(() => new SpeakerCommandService(getEnvironmentConfig()))
 
   // Getters
   const commandsCount = computed(() => commands.value.length)

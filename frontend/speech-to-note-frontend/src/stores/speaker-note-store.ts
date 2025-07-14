@@ -3,10 +3,8 @@ import { ref, computed } from 'vue'
 import { SpeakerNoteService } from '../services/SpeakerNoteService'
 import type { SpeakerNote } from '@/models/SpeakerNote'
 import { ResponseValidator, type BaseResponse } from '@/models/response/BaseResponse'
-import ENV_DOCKER from '@/config/env.local.docker'
-import ENV_LOCAL from '@/config/env.local'
 import { SNRequestBuilder } from '@/models/request/SNRequest'
-import { CURRENT_ENV } from '@/config/env.current'
+import { getEnvironmentConfig } from '@/config/env.current'
 
 export const useSpeakerNoteStore = defineStore('speakerNote', () => {
   // State
@@ -16,9 +14,7 @@ export const useSpeakerNoteStore = defineStore('speakerNote', () => {
   const lastResponse = ref<BaseResponse | null>(null)
 
   // Service instance
-  const service = computed(
-    () => new SpeakerNoteService(CURRENT_ENV === 'local_docker' ? ENV_DOCKER : ENV_LOCAL),
-  )
+  const service = computed(() => new SpeakerNoteService(getEnvironmentConfig()))
 
   // Getters
   const notesCount = computed(() => notes.value.length)

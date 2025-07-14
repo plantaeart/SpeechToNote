@@ -8,12 +8,23 @@ spec:
     matchLabels:
       app: vue
   template:
-  metadata:
-  labels:
-  app: vue
-  spec:
-  containers:
-    - name: vue
-  image: my-vue:latest
-  ports:
-    - containerPort: 80
+    metadata:
+      labels:
+        app: vue
+    spec:
+      containers:
+        - name: vue
+          image: speechtonote-frontend:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+          env:
+            - name: VITE_CONFIG_ENV_FRONT
+              value: "local_kub"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
