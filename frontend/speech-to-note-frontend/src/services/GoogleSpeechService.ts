@@ -1,10 +1,8 @@
 import {
-  CURRENT_ENV,
   GCP_STT_API_COLLECT_EVERY_X_MS,
   GCP_STT_API_TRANSCRIBE_EVERY_X_MS,
+  getEnvironmentConfig,
 } from '@/config/env.current'
-import ENV_LOCAL from '@/config/env.local'
-import ENV_DOCKER from '@/config/env.local.docker'
 import { useRecordingStore } from '@/stores/recording-store'
 import axios from 'axios'
 
@@ -17,7 +15,7 @@ export class GoogleSpeechService {
   private recordingStore = useRecordingStore()
 
   constructor() {
-    const config = CURRENT_ENV === 'local_docker' ? ENV_DOCKER : ENV_LOCAL
+    const config = getEnvironmentConfig()
     this.apiKey = config.GCP_API_KEY
   }
 

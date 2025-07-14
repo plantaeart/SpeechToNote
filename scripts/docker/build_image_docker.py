@@ -223,7 +223,7 @@ def build_vuejs_image():
     print(f"\n🔨 Construction de l'image: {full_image_name}")
     print("⏳ Construction en cours...")
     
-    cmd = f'docker build -t {full_image_name} -f "{dockerfile_path}" "{frontend_dir}"'
+    cmd = f'docker build --build-arg VITE_CONFIG_ENV_FRONT=local_docker -t {full_image_name} -f "{dockerfile_path}" "{frontend_dir}"'
     
     _, stderr, returncode = run_command(cmd)
     
