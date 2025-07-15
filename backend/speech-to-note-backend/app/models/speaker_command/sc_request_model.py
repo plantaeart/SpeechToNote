@@ -8,7 +8,7 @@ class SCCreateRequest(BaseModel):
     
     class Config:
         # Example schema for documentation
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "data": [
                     {
@@ -42,7 +42,7 @@ class SCUpdateRequest(BaseModel):
     
     class Config:
         # Example schema for documentation
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "data": [
                     {
@@ -66,7 +66,7 @@ class SCDeleteByIdsRequest(BaseModel):
     
     class Config:
         # Example schema for documentation
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "ids_command": [1, 2, 3, 4]
             }

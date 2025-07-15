@@ -39,9 +39,9 @@ class TestSpeakerCommand:
 
     def test_migration_from_old_schema(self, test_client: TestClient):
         """Test that old schema documents are migrated when retrieved"""
-        from app import get_collection
         from app.migrations.speaker_command_migrations import SpeakerCommandMigrations
-        
+        from app.main import get_collection
+
         # Insert an old schema document directly
         collection = get_collection("COMMANDS")
         if collection is not None:
@@ -62,7 +62,7 @@ class TestSpeakerCommand:
             
             assert response.status_code == 200
             response_data = response.json()
-            
+
             # Find the migrated command
             migrated_command = None
             for cmd in response_data["data"]:
