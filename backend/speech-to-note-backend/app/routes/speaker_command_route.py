@@ -11,7 +11,7 @@ router_speaker_command = APIRouter(prefix="/speaker_commands", tags=["speaker_co
 @router_speaker_command.post("/", response_model=BaseResponse)
 async def create_speaker_command(request: SCCreateRequest):
     """Create a new speaker command."""
-    from app import get_collection
+    from ..main import get_collection
     collection = get_collection("COMMANDS")
     
     # Validate that we have data to process
@@ -55,9 +55,8 @@ async def create_speaker_command(request: SCCreateRequest):
 # Get all speaker commands
 @router_speaker_command.get("/", response_model=BaseResponse)
 async def get_speaker_commands():
-    """Get all speaker commands."""
-    from app import get_collection
-    
+    """Get all speaker commands."""    
+    from ..main import get_collection
     collection = get_collection("COMMANDS")
     if collection is not None:
         try:
@@ -75,7 +74,7 @@ async def get_speaker_commands():
 @router_speaker_command.put("/", response_model=BaseResponse)
 async def update_speaker_commands(request: SCUpdateRequest):
     """Update multiple speaker commands."""
-    from app import get_collection
+    from ..main import get_collection
     collection = get_collection("COMMANDS")
     
     if not request.data:
@@ -120,7 +119,7 @@ async def update_speaker_commands(request: SCUpdateRequest):
 @router_speaker_command.delete("/ids", response_model=BaseResponse)
 async def delete_speaker_commands_by_ids(request: SCDeleteByIdsRequest):
     """Delete multiple speaker commands by their IDs."""
-    from app import get_collection
+    from ..main import get_collection
     collection = get_collection("COMMANDS")
     
     if not request.ids_command:
@@ -142,7 +141,7 @@ async def delete_speaker_commands_by_ids(request: SCDeleteByIdsRequest):
 @router_speaker_command.delete("/{id_command}", response_model=BaseResponse)
 async def delete_speaker_command(id_command: int):
     """Delete a specific speaker command by ID."""
-    from app import get_collection
+    from ..main import get_collection
     collection = get_collection("COMMANDS")
     
     try:
@@ -161,7 +160,7 @@ async def delete_speaker_command(id_command: int):
 @router_speaker_command.delete("/", response_model=BaseResponse)
 async def delete_all_speaker_commands():
     """Delete all speaker commands."""
-    from app import get_collection
+    from ..main import get_collection
     collection = get_collection("COMMANDS")
     
     try:

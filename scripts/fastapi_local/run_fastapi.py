@@ -9,14 +9,8 @@ backend_dir = os.path.abspath(backend_dir)
 
 print(f"📁 Répertoire backend: {backend_dir}")
 
-# Vérifier que le fichier main.py existe
-main_py_path = os.path.join(backend_dir, "main.py")
-if not os.path.exists(main_py_path):
-    print(f"❌ Erreur: main.py introuvable dans {backend_dir}")
-    sys.exit(1)
-
 cmd = [
-    "uvicorn", "main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"
+    "uv", "run","uvicorn", "app.main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"
 ]
 
 print("🚀 Lancement de l'API FastAPI en local")

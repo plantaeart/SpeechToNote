@@ -8,7 +8,7 @@ class SNCreateRequest(BaseModel):
     
     class Config:
         # Example schema for documentation
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "data": [
                     {"title": "Meeting Notes", "content": "Important discussion points...", "commands": ["save"]},
@@ -23,7 +23,7 @@ class SNUpdateRequest(BaseModel):
     
     class Config:
         # Example schema for documentation
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "data": [
                     {"id_note": 1, "title": "Updated Meeting Notes"},
@@ -38,7 +38,7 @@ class SNDeleteByIdsRequest(BaseModel):
     
     class Config:
         # Example schema for documentation
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "ids_note": [1, 2, 3, 4]
             }
