@@ -1,6 +1,6 @@
 import typer
 from rich.console import Console
-from scripts.docker.commands.core.docker_manager_core import DockerManager
+from scripts.docker.docker_commands.core.docker_manager_core import DockerManager
 
 app = typer.Typer(help="🗑️ Delete Docker images for SpeechToNote")
 console = Console()
