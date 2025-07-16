@@ -1,7 +1,7 @@
 import typer
 from typing import Optional
 from rich.console import Console
-from docker_image_commands.core.docker_manager_core import DockerManager
+from scripts.docker.docker_image_commands.core.docker_image_manager_core import DockerManager
 
 app = typer.Typer(help="🐳 Docker Manager for SpeechToNote")
 console = Console()
