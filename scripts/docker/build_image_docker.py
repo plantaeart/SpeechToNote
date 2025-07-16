@@ -76,7 +76,7 @@ def build_fastapi_image():
     # Get project paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.join(script_dir, "..", "..")
-    backend_dir = os.path.join(project_root, "backend")
+    backend_dir = os.path.join(project_root, "backend", "speech-to-note-backend")
     dockerfile_path = os.path.join(backend_dir, "Dockerfile")
     
     # Normalize paths
@@ -135,7 +135,7 @@ def build_fastapi_image():
     print("⏳ Construction en cours...")
     
     cmd = f'docker build -t {full_image_name} -f "{dockerfile_path}" "{backend_dir}"'
-    
+    print(cmd)
     _, stderr, returncode = run_command(cmd)
     
     if returncode == 0:
