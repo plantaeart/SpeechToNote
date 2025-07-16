@@ -123,7 +123,7 @@ class DockerManager:
                         })
         return containers
 
-    def build_image(self, service: str, tag: str, no_cache: bool = False, run_after: bool = False):
+    def build_image(self, service: str, tag: str, no_cache: bool = False, run_after: bool = False, force: bool = False):
         """Build Docker image for a service"""
         if not self.check_docker():
             raise typer.Exit(1)
@@ -140,18 +140,20 @@ class DockerManager:
         service_config = self.services.get(service)
         paths = self.get_project_paths(service)
         
-        # Display service info
-        self.console.print(Panel(f"🔨 Building {service_config.name}", style="blue"))
+        # Display service info only in interactive mode
+        if not force:
+            self.console.print(Panel(f"🔨 Building {service_config.name}", style="blue"))
         
         # Check dockerfile exists
         if not os.path.exists(paths["dockerfile_path"]):
             self.console.print(f"❌ Dockerfile not found: {paths['dockerfile_path']}", style="red")
             raise typer.Exit(1)
         
-        # Show existing images
-        existing_images = self.get_existing_images(service_config.image_name)
-        if existing_images:
-            self.display_images_table(existing_images, f"Existing {service_config.name} Images")
+        # Show existing images only in interactive mode
+        if not force:
+            existing_images = self.get_existing_images(service_config.image_name)
+            if existing_images:
+                self.display_images_table(existing_images, f"Existing {service_config.name} Images")
         
         full_image_name = service_config.get_full_image_name(tag)
         
@@ -167,19 +169,20 @@ class DockerManager:
         
         build_cmd += f' -f "{paths["dockerfile_path"]}" "{paths["context_path"]}"'
         
-        # Show build summary
-        info_table = Table(title="Build Configuration")
-        info_table.add_column("Setting", style="cyan")
-        info_table.add_column("Value", style="green")
-        info_table.add_row("Service", service_config.name)
-        info_table.add_row("Image", full_image_name)
-        info_table.add_row("Context", paths["context_path"])
-        info_table.add_row("Dockerfile", paths["dockerfile_path"])
-        self.console.print(info_table)
-        
-        if not Confirm.ask("Continue with build?"):
-            self.console.print("🚫 Build cancelled", style="yellow")
-            raise typer.Exit(0)
+        # Show build summary and confirmation only in interactive mode
+        if not force:
+            info_table = Table(title="Build Configuration")
+            info_table.add_column("Setting", style="cyan")
+            info_table.add_column("Value", style="green")
+            info_table.add_row("Service", service_config.name)
+            info_table.add_row("Image", full_image_name)
+            info_table.add_row("Context", paths["context_path"])
+            info_table.add_row("Dockerfile", paths["dockerfile_path"])
+            self.console.print(info_table)
+            
+            if not Confirm.ask("Continue with build?"):
+                self.console.print("🚫 Build cancelled", style="yellow")
+                raise typer.Exit(0)
         
         # Build the image
         self.console.print(f"🔨 Building {full_image_name}...", style="blue")
@@ -196,13 +199,16 @@ class DockerManager:
         if returncode == 0:
             self.console.print(f"✅ Image {full_image_name} built successfully!", style="green")
             
-            if run_after or Confirm.ask("Run container now?"):
+            # Handle run_after logic
+            if run_after:
+                self.run_container(service, tag, force=force)
+            elif not force and Confirm.ask("Run container now?"):
                 self.run_container(service, tag)
         else:
             self.console.print(f"❌ Build failed: {stderr}", style="red")
             raise typer.Exit(1)
 
-    def run_container(self, service: str, tag: str, port: Optional[int] = None, name: Optional[str] = None):
+    def run_container(self, service: str, tag: str, port: Optional[int] = None, name: Optional[str] = None, force: bool = False, detach: bool = True):
         """Run a Docker container for a service"""
         if not self.check_docker():
             raise typer.Exit(1)
@@ -214,89 +220,115 @@ class DockerManager:
         
         service_config = self.services.get(service)
         
-        self.console.print(Panel(f"🚀 Running {service_config.name}", style="blue"))
+        if not force:
+            self.console.print(Panel(f"🚀 Running {service_config.name}", style="blue"))
         
-        # Show existing images
-        existing_images = self.get_existing_images(service_config.image_name)
-        if existing_images:
-            self.display_images_table(existing_images, f"Available {service_config.name} Images")
-        
-        # Check if image exists
-        image_exists = any(img["tag"] == tag for img in existing_images)
-        if not image_exists:
-            self.console.print(f"⚠️ Image {service_config.get_full_image_name(tag)} not found", style="yellow")
-            if not Confirm.ask("Continue anyway?"):
-                raise typer.Exit(0)
+        # Show existing images only in interactive mode
+        if not force:
+            existing_images = self.get_existing_images(service_config.image_name)
+            if existing_images:
+                self.display_images_table(existing_images, f"Available {service_config.name} Images")
+            
+            # Check if image exists
+            image_exists = any(img["tag"] == tag for img in existing_images)
+            if not image_exists:
+                self.console.print(f"⚠️ Image {service_config.get_full_image_name(tag)} not found", style="yellow")
+                if not Confirm.ask("Continue anyway?"):
+                    raise typer.Exit(0)
         
         # Get port
         if not port:
-            port = typer.prompt("Host port", default=service_config.default_port, type=int)
+            if force:
+                port = service_config.default_port
+            else:
+                port = typer.prompt("Host port", default=service_config.default_port, type=int)
         
         # Get container name
         if not name:
             default_name = service_config.get_default_container_name(tag)
-            name = Prompt.ask("Container name", default=default_name)
+            if force:
+                name = default_name
+            else:
+                name = Prompt.ask("Container name", default=default_name)
         
         # Check for existing container
         check_cmd = f'docker ps -a --filter name=^/{name}$ --format "{{{{.Names}}}}"'
         stdout, _, _ = self.run_command(check_cmd, capture_output=True)
         
         if stdout and stdout.strip():
-            self.console.print(f"⚠️ Container {name} already exists", style="yellow")
-            if Confirm.ask("Stop and remove existing container?"):
-                self.console.print(f"🛑 Stopping and removing {name}...", style="yellow")
+            if force:
+                self.console.print(f"🛑 Stopping and removing existing container {name}...", style="yellow")
                 self.run_command(f"docker stop {name}", capture_output=True)
                 self.run_command(f"docker rm {name}", capture_output=True)
             else:
-                self.console.print("🚫 Cannot continue with existing container", style="red")
-                raise typer.Exit(1)
+                self.console.print(f"⚠️ Container {name} already exists", style="yellow")
+                if Confirm.ask("Stop and remove existing container?"):
+                    self.console.print(f"🛑 Stopping and removing {name}...", style="yellow")
+                    self.run_command(f"docker stop {name}", capture_output=True)
+                    self.run_command(f"docker rm {name}", capture_output=True)
+                else:
+                    self.console.print("🚫 Cannot continue with existing container", style="red")
+                    raise typer.Exit(1)
         
         full_image_name = service_config.get_full_image_name(tag)
         
-        # Show run summary
-        info_table = Table(title="Run Configuration")
-        info_table.add_column("Setting", style="cyan") 
-        info_table.add_column("Value", style="green")
-        info_table.add_row("Service", service_config.name)
-        info_table.add_row("Image", full_image_name)
-        info_table.add_row("Container", name)
-        info_table.add_row("Port Mapping", f"{port}:{service_config.container_port}")
-        self.console.print(info_table)
-        
-        if not Confirm.ask("Continue with run?"):
-            self.console.print("🚫 Run cancelled", style="yellow")
-            raise typer.Exit(0)
+        # Show run summary only in interactive mode
+        if not force:
+            info_table = Table(title="Run Configuration")
+            info_table.add_column("Setting", style="cyan") 
+            info_table.add_column("Value", style="green")
+            info_table.add_row("Service", service_config.name)
+            info_table.add_row("Image", full_image_name)
+            info_table.add_row("Container", name)
+            info_table.add_row("Port Mapping", f"{port}:{service_config.container_port}")
+            info_table.add_row("Mode", "Detached" if detach else "Attached")
+            self.console.print(info_table)
+            
+            if not Confirm.ask("Continue with run?"):
+                self.console.print("🚫 Run cancelled", style="yellow")
+                raise typer.Exit(0)
         
         # Run the container
         self.console.print(f"🚀 Starting container {name}...", style="blue")
         
-        result = subprocess.run([
-            "docker", "run", "-d",
+        # Build docker run command
+        docker_cmd = ["docker", "run"]
+        
+        if detach:
+            docker_cmd.append("-d")
+        else:
+            docker_cmd.extend(["-it"])
+        
+        docker_cmd.extend([
             "--name", name,
             "-p", f"{port}:{service_config.container_port}",
             full_image_name
-        ], capture_output=True, text=True)
+        ])
+        
+        result = subprocess.run(docker_cmd, capture_output=True, text=True)
         
         if result.returncode == 0:
             self.console.print(f"✅ Container {name} started successfully!", style="green")
             
-            # Show access info
-            access_panel = Panel(
-                f"🌐 Service available at: http://localhost:{port}\n"
-                + (f"📖 API docs: http://localhost:{port}/docs" if service == "backend" else ""),
-                title="Access Information",
-                style="green"
-            )
-            self.console.print(access_panel)
-            
-            # Show useful commands
-            commands_table = Table(title="Useful Commands")
-            commands_table.add_column("Action", style="cyan")
-            commands_table.add_column("Command", style="green")
-            commands_table.add_row("View logs", f"docker logs {name}")
-            commands_table.add_row("Stop container", f"docker stop {name}")
-            commands_table.add_row("Remove container", f"docker rm {name}")
-            self.console.print(commands_table)
+            if detach:
+                # Show access info for detached containers
+                access_panel = Panel(
+                    f"🌐 Service available at: http://localhost:{port}\n"
+                    + (f"📖 API docs: http://localhost:{port}/docs" if service == "backend" else ""),
+                    title="Access Information",
+                    style="green"
+                )
+                self.console.print(access_panel)
+                
+                # Show useful commands only in interactive mode
+                if not force:
+                    commands_table = Table(title="Useful Commands")
+                    commands_table.add_column("Action", style="cyan")
+                    commands_table.add_column("Command", style="green")
+                    commands_table.add_row("View logs", f"docker logs {name}")
+                    commands_table.add_row("Stop container", f"docker stop {name}")
+                    commands_table.add_row("Remove container", f"docker rm {name}")
+                    self.console.print(commands_table)
             
         else:
             self.console.print(f"❌ Failed to start container", style="red")
