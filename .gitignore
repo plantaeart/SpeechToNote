@@ -223,6 +223,8 @@ charts/*/Chart.lock
 frontend/speech-to-note-frontend/src/config/env.local.ts
 frontend/speech-to-note-frontend/src/config/env.local.docker.ts
 frontend/speech-to-note-frontend/src/config/env.local.kub.ts
+frontend/speech-to-note-frontend/src/config/env.*.ts
+!frontend/speech-to-note-frontend/src/config/env.example.ts
 backend/speech-to-note-backend/app/configs/local.py
 backend/speech-to-note-backend/app/configs/docker.py
 backend/speech-to-note-backend/app/configs/kubernetes.py
