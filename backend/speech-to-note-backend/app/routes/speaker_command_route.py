@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List
 from ..models.response.base_response_model import BaseResponse
 from ..models.speaker_command.sc_request_model import SCCreateRequest, SCUpdateRequest, SCDeleteByIdsRequest
-from ..configs.config import CURRENT_SC_SCHEMA_VERSION
+from ..configs.config import config
 
 router_speaker_command = APIRouter(prefix="/speaker_commands", tags=["speaker_commands"])
 
@@ -37,7 +37,7 @@ async def create_speaker_command(request: SCCreateRequest):
                 # Add auto-incremented id_command and timestamps (local time)
                 current_time = datetime.now()  # Use local timezone
                 speaker_command_dump["id_command"] = next_id
-                speaker_command_dump["schema_version"] = CURRENT_SC_SCHEMA_VERSION
+                speaker_command_dump["schema_version"] = config.CURRENT_SC_SCHEMA_VERSION
                 speaker_command_dump["created_at"] = current_time
                 speaker_command_dump["updated_at"] = current_time
                 

@@ -2,16 +2,16 @@ import pytest
 from fastapi.testclient import TestClient
 from pymongo import MongoClient
 from app.main import app
-from app.configs.config_local_env import MONGO_URI, DATABASE_NAME
+from app.configs.config import config
 
 # Test database configuration
-TEST_DATABASE_NAME = f"{DATABASE_NAME}_test"
+TEST_DATABASE_NAME = f"{config.DATABASE_NAME}_test"
 TEST_COLLECTIONS = ["SPEAKER_NOTES_TEST", "COMMANDS_TEST"]
 
 @pytest.fixture(scope="session")
 def test_db():
     """Setup and teardown test database"""
-    test_client = MongoClient(MONGO_URI)
+    test_client = MongoClient(config.MONGO_URI)
     test_db = test_client[TEST_DATABASE_NAME]
     
     yield test_db

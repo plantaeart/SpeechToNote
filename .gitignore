@@ -170,14 +170,6 @@ cython_debug/
 # Uvicorn logs
 uvicorn.log
 
-# FastAPI configuration files
-config_*.py
-config_local.py
-config_dev.py
-config_release.py
-config_prod.py
-config.py
-
 # Alembic (database migrations)
 alembic/versions/
 !alembic/versions/.gitkeep
@@ -228,7 +220,13 @@ charts/*/Chart.lock
 .env.production
 
 # Configuration files with API keys
-frontend/speech-to-note-frontend/src/config/*
+frontend/speech-to-note-frontend/src/config/env.local.ts
+frontend/speech-to-note-frontend/src/config/env.local.docker.ts
+frontend/speech-to-note-frontend/src/config/env.local.kub.ts
+backend/speech-to-note-backend/app/configs/local.py
+backend/speech-to-note-backend/app/configs/docker.py
+backend/speech-to-note-backend/app/configs/kubernetes.py
+backend/speech-to-note-backend/app/config_cors.py
 
 # Logs
 logs/

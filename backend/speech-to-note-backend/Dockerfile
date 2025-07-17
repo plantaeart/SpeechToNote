@@ -38,7 +38,7 @@ COPY --from=dependencies-stage /app /app
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Environment and port
-ENV CONFIG_ENV=config_local_docker_env
+ENV CURRENT_ENV=docker
 EXPOSE 8000
 
 # Run FastAPI app using uv
