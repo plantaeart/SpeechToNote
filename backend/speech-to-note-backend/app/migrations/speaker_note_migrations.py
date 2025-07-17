@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Dict, Any
+from ..configs.config import config
 
 class SpeakerNoteMigrations:
     """Handle speaker note schema migrations"""
@@ -7,8 +8,8 @@ class SpeakerNoteMigrations:
     @staticmethod
     def get_current_schema_version() -> str:
         """Return current schema version"""
-        return "1.0.0"  # Updated to 1.0.0 as default
-    
+        return config.CURRENT_SN_SCHEMA_VERSION
+
     @staticmethod
     def migrate_to_v1_0_0(collection, doc: Dict[str, Any]) -> Dict[str, Any]:
         """Migrate document to version 1.0.0"""

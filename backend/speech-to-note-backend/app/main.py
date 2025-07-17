@@ -6,7 +6,7 @@ import uvicorn
 
 from .routes.speaker_note_route import router_speaker_note 
 from .routes.speaker_command_route import router_speaker_command
-from .configs.config import MONGO_URI, DATABASE_NAME, COLLECTIONS, CURRENT_APPLICATION_VERSION
+from .configs.config import config
 from .migrations.speaker_note_migrations import SpeakerNoteMigrations
 from .migrations.speaker_command_migrations import SpeakerCommandMigrations
 from .config_cors import CORS_CONFIG
@@ -20,9 +20,10 @@ print("\n" + "="*60, flush=True)
 print("[STARTUP] 🚀 SpeechToNote API Initialization", flush=True)
 print("="*60, flush=True)
 
-print(f"[STARTUP] 📊 MongoDB URI: {MONGO_URI}", flush=True)
-print(f"[STARTUP] 📊 Database: {DATABASE_NAME}", flush=True)
-print(f"[STARTUP] 📊 Collections: {COLLECTIONS}", flush=True)
+print(f"[STARTUP] 📦 Environment: {config.ENVIRONMENT}", flush=True)
+print(f"[STARTUP] 📊 MongoDB URI: {config.MONGO_URI}", flush=True)
+print(f"[STARTUP] 📊 Database: {config.DATABASE_NAME}", flush=True)
+print(f"[STARTUP] 📊 Collections: {config.COLLECTIONS}", flush=True)
 print("="*60 + "\n", flush=True)
 
 mongodb_client = None
@@ -34,20 +35,20 @@ async def app_lifespan(app):
     global mongodb_client, database, collections
     try:
         print("[STARTUP] 🔗 Connecting to MongoDB...", flush=True)
-        mongodb_client = MongoClient(MONGO_URI)
+        mongodb_client = MongoClient(config.MONGO_URI)
         print("[STARTUP] 🧪 Testing MongoDB connection...", flush=True)
         mongodb_client.admin.command('ping')
         print("[STARTUP] ✅ MongoDB connection successful", flush=True)
-        database = mongodb_client[DATABASE_NAME]
+        database = mongodb_client[config.DATABASE_NAME]
         existing_collections = database.list_collection_names()
-        for collection_name in COLLECTIONS:
+        for collection_name in config.COLLECTIONS:
             if collection_name not in existing_collections:
                 database.create_collection(collection_name)
                 print(f"Created collection: {collection_name}")
             else:
                 print(f"Collection {collection_name} already exists")
             collections[collection_name] = database[collection_name]
-        print(f"[STARTUP] 🗄️ Connected to database: {DATABASE_NAME}", flush=True)
+        print(f"[STARTUP] 🗄️ Connected to database: {config.DATABASE_NAME}", flush=True)
         if "SPEAKER_NOTES" in collections:
             print("[STARTUP] 🔄 Running speaker notes migrations...", flush=True)
             SpeakerNoteMigrations.run_migrations(collections["SPEAKER_NOTES"])
@@ -69,7 +70,7 @@ async def app_lifespan(app):
 app = FastAPI(
     title="SpeechToNote API",
     description="API for managing speaker notes and commands",
-    version=CURRENT_APPLICATION_VERSION,
+    version=config.CURRENT_APPLICATION_VERSION,
     lifespan=app_lifespan
 )
 

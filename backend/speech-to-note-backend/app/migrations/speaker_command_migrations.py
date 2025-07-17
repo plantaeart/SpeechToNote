@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Dict, Any
+from ..configs.config import config
 
 class SpeakerCommandMigrations:
     """Handle speaker command schema migrations"""
@@ -7,8 +8,8 @@ class SpeakerCommandMigrations:
     @staticmethod
     def get_current_schema_version() -> str:
         """Return current schema version"""
-        return "1.0.1"  # Updated to include HTML tags and vocal command list
-    
+        return config.CURRENT_SC_SCHEMA_VERSION
+
     @staticmethod
     def migrate_to_v1_0_0(collection, doc: Dict[str, Any]) -> Dict[str, Any]:
         """Migrate document to version 1.0.0"""
