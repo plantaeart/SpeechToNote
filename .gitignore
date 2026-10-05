@@ -183,8 +183,8 @@ alembic/versions/
 docs/
 
 # Docker specific
-# Docker build context excludes
-.dockerignore
+# Note: .dockerignore files ARE committed — they keep .git/ and secrets
+# out of the Docker build context.
 
 # Docker volumes and data
 docker-data/
@@ -219,16 +219,10 @@ charts/*/Chart.lock
 .env.staging
 .env.production
 
-# Configuration files with API keys
-frontend/speech-to-note-frontend/src/config/env.local.ts
-frontend/speech-to-note-frontend/src/config/env.local.docker.ts
-frontend/speech-to-note-frontend/src/config/env.local.kub.ts
-frontend/speech-to-note-frontend/src/config/env.*.ts
-!frontend/speech-to-note-frontend/src/config/env.example.ts
-backend/speech-to-note-backend/app/configs/local.py
-backend/speech-to-note-backend/app/configs/docker.py
-backend/speech-to-note-backend/app/configs/kubernetes.py
-backend/speech-to-note-backend/app/config_cors.py
+# Local environment configs hold no secrets: the GCP API key ships empty and
+# users paste their own in. Real .env files stay ignored (see above).
+infra/.env
+infra/.local/
 
 # Logs
 logs/
@@ -320,3 +314,10 @@ mongodb-data-local/
 # Build artifacts
 build/
 dist/
+
+# Tool downloads — `curl`/`go install` in the project root leaves these behind.
+kubectl
+kubectl.exe
+kind
+kind.exe
+*.sha256

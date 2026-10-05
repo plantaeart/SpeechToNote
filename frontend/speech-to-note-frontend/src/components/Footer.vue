@@ -1,15 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import Button from 'primevue/button'
 import Divider from 'primevue/divider'
 import { VERSION } from '@/config/env.current'
 
 const currentYear = computed(() => new Date().getFullYear())
 const version = ref(VERSION)
-
-const openLink = (url: string) => {
-  window.open(url, '_blank', 'noopener,noreferrer')
-}
 </script>
 
 <template>

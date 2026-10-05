@@ -9,7 +9,7 @@ import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 import { useSpeakerNoteStore } from './stores/speaker-note-store'
 import { useSpeakerCommandStore } from './stores/speaker-command-store'
-import { computed, watch } from 'vue'
+import { watch } from 'vue'
 
 const noteStore = useSpeakerNoteStore()
 const commandStore = useSpeakerCommandStore()

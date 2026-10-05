@@ -1,6 +1,17 @@
 import subprocess
 import os
+import shutil
+import sys
 import time
+
+def get_host_data_dir():
+    """Host directory bind-mounted into the kind node (see manifests/kind-config.yaml)."""
+    override = os.getenv("SPEECHTONOTE_DATA_DIR")
+    if override:
+        return override
+    if sys.platform == "win32":
+        return os.path.join(os.environ.get("TEMP", r"C:\temp"), "speechtonote-mongo-data")
+    return "/tmp/speechtonote-mongo-data"
 
 def ask_tag(service):
     tag = input(f"Entrez le tag Docker pour {service} (par défaut: latest) : ").strip()
@@ -28,7 +39,8 @@ def wait_for_deployment_ready(deployment_name, timeout=300):
             if ready_replicas and int(ready_replicas) > 0:
                 print(f"\n✓ Déploiement {deployment_name} prêt!")
                 return True
-        except:
+        except (subprocess.CalledProcessError, OSError):
+            # Not ready yet; the deployment may not exist or kubectl may fail.
             pass
         
         print(f"\r{spinner[i % len(spinner)]} Attente...", end='', flush=True)
@@ -43,6 +55,7 @@ def deploy_in_order(manifests_path):
     
     # 1. Deploy MongoDB storage first
     print("1. Déploiement du stockage MongoDB...")
+    subprocess.run(["kubectl", "apply", "-f", os.path.join(manifests_path, "local-storage.yaml")], check=True)
     subprocess.run(["kubectl", "apply", "-f", os.path.join(manifests_path, "mongo-pv.yaml")], check=True)
     subprocess.run(["kubectl", "apply", "-f", os.path.join(manifests_path, "mongo-pvc.yaml")], check=True)
     
@@ -72,7 +85,30 @@ def deploy_in_order(manifests_path):
     
     return True
 
+def require_binaries(*names):
+    """Fail early with a clear message when a required tool is missing.
+
+    Without this, a missing `kind` surfaces as a bare FileNotFoundError
+    traceback part-way through a deployment.
+    """
+    missing = []
+    for name in names:
+        if shutil.which(name) is None:
+            missing.append(name)
+
+    if missing:
+        print("❌ Required tool(s) not found on your PATH:")
+        for name in missing:
+            print(f"   - {name}")
+        print("   Install: docker, https://kind.sigs.k8s.io/, https://kubernetes.io/docs/tasks/tools/")
+        return False
+    return True
+
+
 def main():
+    if not require_binaries("docker", "kind", "kubectl"):
+        return
+
     fastapi_tag = ask_tag("fastapi")
     vue_tag = ask_tag("vue")
 
@@ -81,7 +117,7 @@ def main():
 
     # Get absolute paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    backend_path = os.path.join(script_dir, "../../backend")
+    backend_path = os.path.join(script_dir, "../../backend/speech-to-note-backend")
     frontend_path = os.path.join(script_dir, "../../frontend")
     manifests_path = os.path.join(script_dir, "../../manifests")
     
@@ -103,8 +139,8 @@ def main():
         print("Création du cluster Kind 'kub-speechtonote-app'...")
         kind_config_path = os.path.join(manifests_path, "kind-config.yaml")
         
-        # Create host directory for persistent data
-        host_data_dir = r"C:\temp\speechtonote-mongo-data"
+        # Create host directory for persistent data (matches kind-config.yaml)
+        host_data_dir = get_host_data_dir()
         os.makedirs(host_data_dir, exist_ok=True)
         
         subprocess.run([
@@ -151,8 +187,8 @@ def main():
     print("\nPour accéder aux applications, utilisez:")
     print("python forwarding.py")
     print("\nOu utilisez les commandes manuelles:")
-    print("kubectl port-forward service/vue-service 8080:80")
-    print("kubectl port-forward service/fastapi-service 8010:8000")
+    print("python forwarding.py   # http://localhost:8080 (frontend), :8081 (API)")
+    print("python kill_forwarding.py   # stop those port-forwards")
 
 if __name__ == '__main__':
     main()

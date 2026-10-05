@@ -1,0 +1,10 @@
+# Build context for frontend/Dockerfile: excludes the app's own node_modules.
+speech-to-note-frontend/node_modules
+speech-to-note-frontend/dist
+node_modules
+dist
+# Unused stub lockfile from an earlier layout (the app has its own).
+package-lock.json
+Dockerfile
+.dockerignore
+*.md

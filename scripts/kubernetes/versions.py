@@ -1,7 +1,17 @@
+import shutil
 import subprocess
 
+
 def get_image_versions():
-    result = subprocess.run(["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"], capture_output=True, text=True)
+    if shutil.which("docker") is None:
+        print("❌ docker was not found on your PATH.")
+        return
+
+    result = subprocess.run(
+        ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"],
+        capture_output=True,
+        text=True,
+    )
     images = result.stdout.strip().split('\n')
 
     fastapi_versions = [img for img in images if img.startswith("speechtonote-backend:")]
@@ -14,6 +24,7 @@ def get_image_versions():
     print("\nVersions des images Vue.js disponibles :")
     for v in vue_versions:
         print(f" - {v}")
+
 
 if __name__ == '__main__':
     get_image_versions()

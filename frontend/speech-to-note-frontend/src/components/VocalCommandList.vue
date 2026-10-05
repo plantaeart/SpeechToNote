@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useSpeakerCommandStore } from '@/stores/speaker-command-store'
-import { ref, onMounted, computed, nextTick, watch } from 'vue'
+import type { SpeakerCommand } from '@/models/SpeakerCommand'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Toast from 'primevue/toast'
@@ -95,7 +96,7 @@ const deleteCommand = async (event: Event, id_command: number, commandName: stri
   })
 }
 
-const startEdit = (command: any) => {
+const startEdit = (command: SpeakerCommand) => {
   // Save current scroll position
   scrollPosition.value = window.scrollY
 
@@ -343,13 +344,11 @@ const onCreateVocalInput = () => {
       </Card>
 
       <!-- Existing Commands -->
-      <Card
-        v-if="hasCommands"
-        v-for="command in commands.sort((a, b) => a.id_command - b.id_command)"
-        :key="command.id_command"
-        class="command-card"
-        :class="{ editing: editingCommand === command.id_command }"
-      >
+      <template v-for="command in commands.sort((a, b) => a.id_command - b.id_command)" :key="command.id_command">
+        <Card
+          class="command-card"
+          :class="{ editing: editingCommand === command.id_command }"
+        >
         <template #header>
           <div class="command-header">
             <div class="command-name-section">
@@ -561,6 +560,7 @@ const onCreateVocalInput = () => {
           </div>
         </template>
       </Card>
+      </template>
 
       <!-- Create Command Card -->
       <Card class="command-card create-card" :class="{ editing: creatingCommand }">

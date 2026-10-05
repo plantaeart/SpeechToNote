@@ -17,15 +17,21 @@ class DockerContainerManager:
         self.console = console
         self.registry = container_registry
     
-    def run_command(self, cmd: str, capture_output: bool = False) -> tuple:
-        """Execute a command and return the result"""
+    def run_command(self, cmd, capture_output: bool = False) -> tuple:
+        """Execute a command and return the result.
+
+        Pass a list to run without a shell — required on Windows, where
+        characters like `|` in a --format string are cmd.exe metacharacters.
+        """
         try:
-            if capture_output:
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-                return result.stdout.strip(), result.stderr.strip(), result.returncode
+            kwargs = {"capture_output": True, "text": True} if capture_output else {"check": True}
+            if isinstance(cmd, str):
+                result = subprocess.run(cmd, shell=True, **kwargs)
             else:
-                result = subprocess.run(cmd, shell=True, check=True)
-                return None, None, 0
+                result = subprocess.run(cmd, **kwargs)
+            if capture_output:
+                return result.stdout.strip(), result.stderr.strip(), result.returncode
+            return None, None, 0
         except subprocess.CalledProcessError as e:
             return None, str(e), e.returncode
 
@@ -51,12 +57,13 @@ class DockerContainerManager:
 
     def get_containers(self, running_only: bool = False, stopped_only: bool = False) -> List[ContainerInfo]:
         """Get list of containers"""
+        format_arg = "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}"
         if running_only:
-            cmd = 'docker ps --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}"'
+            cmd = ["docker", "ps", "--format", format_arg]
         elif stopped_only:
-            cmd = 'docker ps -a --filter "status=exited" --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}"'
+            cmd = ["docker", "ps", "-a", "--filter", "status=exited", "--format", format_arg]
         else:
-            cmd = 'docker ps -a --format "{{.ID}}|{{.Names}}|{{.Image}}|{{.Status}}|{{.Ports}}"'
+            cmd = ["docker", "ps", "-a", "--format", format_arg]
         
         stdout, stderr, returncode = self.run_command(cmd, capture_output=True)
         
@@ -423,13 +430,13 @@ class DockerContainerManager:
             self.console.print(f"❌ Container '{container_name}' not found", style="red")
             return
         
-        # Build logs command
-        cmd = f'docker logs'
+        # Build logs command (argument list: no shell, so it works on Windows too)
+        cmd = ["docker", "logs"]
         if follow:
-            cmd += ' -f'
+            cmd.append("-f")
         if lines:
-            cmd += f' --tail {lines}'
-        cmd += f' {container.id}'
+            cmd.extend(["--tail", str(lines)])
+        cmd.append(container.id)
         
         self.console.print(f"📋 Showing logs for {container.name} ({container.short_id})", style="blue")
         
@@ -438,7 +445,7 @@ class DockerContainerManager:
         
         # Execute logs command
         try:
-            result = subprocess.run(cmd, shell=True, text=True)
+            subprocess.run(cmd, text=True)
         except KeyboardInterrupt:
             self.console.print("\n🛑 Log following stopped", style="yellow")
 

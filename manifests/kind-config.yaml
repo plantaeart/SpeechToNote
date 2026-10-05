@@ -1,8 +1,13 @@
+# kind cluster for local SpeechToNote development.
+#
+# The MongoDB data directory is bind-mounted from the host. The path below is
+# the Linux/macOS default; scripts/kubernetes/start.py creates it for you.
+# On Windows, use an absolute path such as C:/temp/speechtonote-mongo-data.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
     extraMounts:
-      - hostPath: C:\temp\speechtonote-mongo-data
+      - hostPath: /tmp/speechtonote-mongo-data
         containerPath: /host/mongo-data
         propagation: HostToContainer

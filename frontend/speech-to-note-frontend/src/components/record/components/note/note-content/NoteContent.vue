@@ -11,16 +11,16 @@ import { useRecordingStore } from '@/stores/recording-store'
 import { useSpeakerCommandStore } from '@/stores/speaker-command-store'
 import { isContentEmpty } from '@/utils/stringUtils'
 
-var baseNoteContent = ref('') // Store the base content with raw commands
-var realtimeTranscript = ref('') // Store real-time transcript
-var noteTitle = ref('Ma nouvelle note') // Store the note title with default value
-var titleError = ref(false) // Track title validation error
-var contentError = ref(false) // Track content validation error
+const baseNoteContent = ref('') // Store the base content with raw commands
+const realtimeTranscript = ref('') // Store real-time transcript
+const noteTitle = ref('Ma nouvelle note') // Store the note title with default value
+const titleError = ref(false) // Track title validation error
+const contentError = ref(false) // Track content validation error
 
 // Timer variables
 const timeMaxValue = 25 // 25 seconds countdown
-var recordingTimer = ref(timeMaxValue) // 25 seconds countdown
-var timerInterval = ref<number | null>(null)
+const recordingTimer = ref(timeMaxValue) // 25 seconds countdown
+const timerInterval = ref<number | null>(null)
 
 // Dynamic speech commands from database
 const speechCommands = computed(() => {
@@ -48,7 +48,7 @@ const processSpeechCommands = (text: string): string => {
   const commandPatterns = commands.flatMap((cmd) => cmd.command_vocal).join('|')
   const regex = new RegExp(`(${commandPatterns})\\s+(.+?)(?=\\s+(${commandPatterns})|$)`, 'gi')
 
-  let processedText = text
+  const processedText = text
   let result = ''
   let lastIndex = 0
 
@@ -254,7 +254,7 @@ const requestMicrophonePermission = async () => {
     }
 
     return hasPermission
-  } catch (error) {
+  } catch {
     microphonePermission.value = false
     toast.add({
       severity: 'error',
@@ -289,7 +289,7 @@ const startRecording = async () => {
       detail: 'Parlez maintenant...',
       life: 2000,
     })
-  } catch (error) {
+  } catch {
     toast.add({
       severity: 'error',
       summary: "Erreur d'enregistrement",
@@ -338,7 +338,7 @@ const stopRecording = async () => {
         life: 3000,
       })
     }
-  } catch (error) {
+  } catch {
     toast.add({
       severity: 'error',
       summary: 'Erreur de transcription',

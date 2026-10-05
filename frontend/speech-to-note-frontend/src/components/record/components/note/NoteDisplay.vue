@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import NoteContent from './note-content/NoteContent.vue'
-import { useRecordingStore } from '@/stores/recording-store'
-
-const recordingStore = useRecordingStore()
 </script>
 
 <template>

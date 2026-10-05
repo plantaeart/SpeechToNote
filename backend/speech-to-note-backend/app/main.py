@@ -11,6 +11,17 @@ from .migrations.speaker_note_migrations import SpeakerNoteMigrations
 from .migrations.speaker_command_migrations import SpeakerCommandMigrations
 from .config_cors import CORS_CONFIG
 
+
+def _mask_mongo_uri(uri: str) -> str:
+    """Hide the password in a MongoDB URI so it is safe to log."""
+    if "://" not in uri or "@" not in uri:
+        return uri
+    scheme, rest = uri.split("://", 1)
+    credentials, host = rest.rsplit("@", 1)
+    user = credentials.split(":", 1)[0]
+    return f"{scheme}://{user}:***@{host}"
+
+
 # Display configuration before starting
 print("\n" + "🚀 " + "="*50, flush=True)
 print("  SpeechToNote FastAPI Server Starting...", flush=True)
@@ -21,7 +32,8 @@ print("[STARTUP] 🚀 SpeechToNote API Initialization", flush=True)
 print("="*60, flush=True)
 
 print(f"[STARTUP] 📦 Environment: {config.ENVIRONMENT}", flush=True)
-print(f"[STARTUP] 📊 MongoDB URI: {config.MONGO_URI}", flush=True)
+# ponytail: hide credentials in the URI, since this lands in container logs.
+print(f"[STARTUP] 📊 MongoDB URI: {_mask_mongo_uri(config.MONGO_URI)}", flush=True)
 print(f"[STARTUP] 📊 Database: {config.DATABASE_NAME}", flush=True)
 print(f"[STARTUP] 📊 Collections: {config.COLLECTIONS}", flush=True)
 print("="*60 + "\n", flush=True)

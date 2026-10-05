@@ -4,7 +4,7 @@ import { SpeakerNote } from "../SpeakerNote";
 /**
  * Standard API Response (matches FastAPI BaseResponse)
  */
-export interface BaseResponse<T = any> {
+export interface BaseResponse<T = unknown> {
   data: T | null;
   status_code: number;
   message: string;
@@ -65,40 +65,63 @@ export class BaseResponseBuilder {
 
 /**
  * Type guards for response validation
+ *
+ * Each guard names the properties it requires, so the expected API shape is
+ * visible here rather than hidden behind a generic record check.
  */
 export class ResponseValidator {
-  static isBaseResponse<T>(obj: any): obj is BaseResponse<T> {
+  static isBaseResponse<T>(obj: unknown): obj is BaseResponse<T> {
     return (
-      obj &&
+      typeof obj === "object" &&
+      obj !== null &&
+      "status_code" in obj &&
       typeof obj.status_code === "number" &&
+      "message" in obj &&
       typeof obj.message === "string" &&
-      (obj.data !== undefined || obj.data === null)
+      "data" in obj
     );
   }
 
-  static isSpeakerNote(obj: any): obj is SpeakerNote {
+  static isSpeakerNote(obj: unknown): obj is SpeakerNote {
     return (
-      obj &&
+      typeof obj === "object" &&
+      obj !== null &&
+      "_id" in obj &&
       typeof obj._id === "string" &&
+      "id_note" in obj &&
       typeof obj.id_note === "number" &&
+      "title" in obj &&
       typeof obj.title === "string" &&
+      "content" in obj &&
       typeof obj.content === "string" &&
+      "commands" in obj &&
       Array.isArray(obj.commands) &&
+      "schema_version" in obj &&
       typeof obj.schema_version === "string" &&
+      "created_at" in obj &&
       typeof obj.created_at === "string" &&
+      "updated_at" in obj &&
       typeof obj.updated_at === "string"
     );
   }
 
-  static isSpeakerCommand(obj: any): obj is SpeakerCommand {
+  static isSpeakerCommand(obj: unknown): obj is SpeakerCommand {
     return (
-      obj &&
+      typeof obj === "object" &&
+      obj !== null &&
+      "_id" in obj &&
       typeof obj._id === "string" &&
+      "id_command" in obj &&
       typeof obj.id_command === "number" &&
+      "command_name" in obj &&
       typeof obj.command_name === "string" &&
+      "command_vocal" in obj &&
       typeof obj.command_vocal === "string" &&
+      "schema_version" in obj &&
       typeof obj.schema_version === "string" &&
+      "created_at" in obj &&
       typeof obj.created_at === "string" &&
+      "updated_at" in obj &&
       typeof obj.updated_at === "string"
     );
   }

@@ -6,6 +6,18 @@ def ask_tag(service):
     return tag if tag else "latest"
 
 def build_and_load(service, path, tag):
+    """Rebuild one service image and load it into the kind cluster.
+
+    The tag must stay `latest`: the manifests pin `:latest`, so any other tag
+    would build an image the cluster never deploys.
+    """
+    if tag != "latest":
+        print(
+            f"⚠️  Les manifests utilisent l'image ':latest'. "
+            f"Une étiquette '{tag}' serait ignorée — utilisation de 'latest'."
+        )
+        tag = "latest"
+
     if service == "fastapi":
         image = f"speechtonote-backend:{tag}"
     else:
@@ -16,7 +28,12 @@ def build_and_load(service, path, tag):
         return False
         
     print(f"Construction de l'image {image}...")
-    subprocess.run(["docker", "build", "-t", image, os.path.abspath(path)], check=True)
+    build_cmd = ["docker", "build", "-t", image]
+    if service == "vue":
+        # The frontend must be built against the kind config, as start.py does.
+        build_cmd += ["--build-arg", "VITE_CONFIG_ENV_FRONT=local_kub"]
+    build_cmd.append(os.path.abspath(path))
+    subprocess.run(build_cmd, check=True)
     print(f"Chargement de l'image {image} dans Kind...")
     subprocess.run(["kind", "load", "docker-image", image, "--name", "kub-speechtonote-app"], check=True)
     return True
@@ -28,7 +45,7 @@ def rollout_restart(deployment):
 if __name__ == "__main__":
     # Get absolute paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    backend_path = os.path.join(script_dir, "../../backend")
+    backend_path = os.path.join(script_dir, "../../backend/speech-to-note-backend")
     frontend_path = os.path.join(script_dir, "../../frontend")
     
     fastapi_tag = ask_tag("fastapi")

@@ -1,11 +1,13 @@
 import type { ApiConfig } from '@/models/ApiConfig'
 
-export const ENV_LOCAL: ApiConfig = {
-  API_BASE_URL: 'http://127.0.0.1:8000',
+// Same key as env.local.ts: speech recognition always calls Google directly
+// from the browser, so the key is baked in at build time either way.
+export const ENV_DOCKER: ApiConfig = {
+  API_BASE_URL: 'http://localhost:8000',
   API_TIMEOUT: 10000,
-  ENVIRONMENT: 'local',
+  ENVIRONMENT: 'local_docker',
   DEBUG: true,
-  GCP_API_KEY: 'YOUR_GCP_API_KEY_HERE', // Replace with your actual GCP API key
+  GCP_API_KEY: '',
   ENDPOINTS: {
     SPEAKER_NOTES: '/speaker_notes',
     SPEAKER_COMMANDS: '/speaker_commands',
@@ -20,4 +22,4 @@ export const ENV_LOCAL: ApiConfig = {
   },
 }
 
-export default ENV_LOCAL
+export default ENV_DOCKER

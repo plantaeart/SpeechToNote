@@ -17,15 +17,21 @@ class DockerManager:
         self.console = console
         self.services = services_registry
     
-    def run_command(self, cmd: str, capture_output: bool = False) -> tuple:
-        """Execute a command and return the result"""
+    def run_command(self, cmd, capture_output: bool = False) -> tuple:
+        """Execute a command and return the result.
+
+        Pass a list to run without a shell — required on Windows, where
+        characters like `|` in a --format string are cmd.exe metacharacters.
+        """
         try:
-            if capture_output:
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-                return result.stdout.strip(), result.stderr.strip(), result.returncode
+            kwargs = {"capture_output": True, "text": True} if capture_output else {"check": True}
+            if isinstance(cmd, str):
+                result = subprocess.run(cmd, shell=True, **kwargs)
             else:
-                result = subprocess.run(cmd, shell=True, check=True)
-                return None, None, 0
+                result = subprocess.run(cmd, **kwargs)
+            if capture_output:
+                return result.stdout.strip(), result.stderr.strip(), result.returncode
+            return None, None, 0
         except subprocess.CalledProcessError as e:
             return None, str(e), e.returncode
 
@@ -66,7 +72,8 @@ class DockerManager:
 
     def get_existing_images(self, image_name: str) -> List[Dict[str, str]]:
         """Get list of existing images"""
-        cmd = f'docker images {image_name} --format "{{{{.Repository}}}}|{{{{.Tag}}}}|{{{{.CreatedAt}}}}|{{{{.Size}}}}"'
+        cmd = ["docker", "images", image_name,
+               "--format", "{{.Repository}}|{{.Tag}}|{{.CreatedAt}}|{{.Size}}"]
         stdout, stderr, returncode = self.run_command(cmd, capture_output=True)
         
         images = []
@@ -107,7 +114,8 @@ class DockerManager:
 
     def get_containers_using_image(self, image_name: str) -> List[Dict[str, str]]:
         """Get containers using the specified image"""
-        cmd = f'docker ps -a --filter ancestor={image_name} --format "{{{{.ID}}}}|{{{{.Names}}}}|{{{{.Status}}}}"'
+        cmd = ["docker", "ps", "-a", f"--filter=ancestor={image_name}",
+               "--format", "{{.ID}}|{{.Names}}|{{.Status}}"]
         stdout, stderr, returncode = self.run_command(cmd, capture_output=True)
         
         containers = []
@@ -252,7 +260,7 @@ class DockerManager:
                 name = Prompt.ask("Container name", default=default_name)
         
         # Check for existing container
-        check_cmd = f'docker ps -a --filter name=^/{name}$ --format "{{{{.Names}}}}"'
+        check_cmd = ["docker", "ps", "-a", f"--filter=name=^/{name}$", "--format", "{{.Names}}"]
         stdout, _, _ = self.run_command(check_cmd, capture_output=True)
         
         if stdout and stdout.strip():

@@ -11,10 +11,8 @@ COPY . /app
 # Copy from the cache instead of linking since it's a mounted volume
 ENV UV_LINK_MODE=copy
 
-# Install dependencies
+# Install dependencies (reproducible: uv.lock is committed)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-install-project
 
 # Sync the project
@@ -40,6 +38,10 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Environment and port
 ENV CURRENT_ENV=docker
 EXPOSE 8000
+
+# Run as a non-root user
+RUN useradd --create-home --uid 1000 appuser
+USER appuser
 
 # Run FastAPI app using uv
 CMD ["uv", "run", "fastapi", "dev", "--host", "0.0.0.0"]

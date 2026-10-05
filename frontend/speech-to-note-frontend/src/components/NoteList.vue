@@ -15,6 +15,7 @@ import InputText from 'primevue/inputtext'
 import Editor from 'primevue/editor'
 import FloatingLoader from './FloatingLoader.vue'
 import { useSpeakerNoteStore } from '@/stores/speaker-note-store'
+import type { SpeakerNote } from '@/models/SpeakerNote'
 import { isContentEmpty } from '@/utils/stringUtils'
 
 const noteStore = useSpeakerNoteStore()
@@ -56,10 +57,6 @@ const fetchNotes = async () => {
   }
 }
 
-const clearError = () => {
-  noteStore.clearError()
-}
-
 const deleteNote = async (event: Event, id_note: number, noteTitle: string) => {
   console.log(`Start deleting note with ID: ${id_note} - Title: ${noteTitle}`)
   confirm.require({
@@ -77,7 +74,7 @@ const deleteNote = async (event: Event, id_note: number, noteTitle: string) => {
   })
 }
 
-const cloneNote = async (event: Event, note: any) => {
+const cloneNote = async (event: Event, note: SpeakerNote) => {
   console.log(`Start cloning note with ID: ${note.id_note} - Title: ${note.title}`)
   const clonedTitle = `${note.title} (Copie)`
   confirm.require({
@@ -95,7 +92,7 @@ const cloneNote = async (event: Event, note: any) => {
   })
 }
 
-const startEdit = (note: any) => {
+const startEdit = (note: SpeakerNote) => {
   // Save current scroll position
   scrollPosition.value = window.scrollY
 
@@ -262,14 +259,12 @@ watch(
       </Card>
 
       <!-- Existing Notes -->
-      <Card
-        v-if="hasNotes"
-        v-for="note in notes.sort(
-          (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
-        )"
-        :key="note.id_note"
-        class="note-card"
-        :class="{ editing: editingNote === note.id_note }"
+      <template v-for="note in notes.sort(
+        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+      )" :key="note.id_note">
+        <Card
+          class="note-card"
+          :class="{ editing: editingNote === note.id_note }"
       >
         <template #header>
           <div class="note-header">
@@ -414,6 +409,7 @@ watch(
           </div>
         </template>
       </Card>
+      </template>
     </div>
 
     <!-- Floating loader component -->

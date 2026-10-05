@@ -36,4 +36,14 @@ export default defineConfigWithVueTs(
     ],
   },
   skipFormatting,
+
+  {
+    // Footer and Separator are single-word layout primitives; renaming them
+    // would churn imports for no runtime benefit.
+    name: 'app/single-word-components',
+    files: ['src/components/Footer.vue', 'src/components/styles/Separator.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
 )

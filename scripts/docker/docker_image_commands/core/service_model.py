@@ -1,3 +1,4 @@
+import os
 from typing import Dict, List
 from pydantic import BaseModel, Field
 
@@ -27,8 +28,10 @@ class ServicesRegistry:
             "backend": ServiceConfig(
                 name="FastAPI Backend",
                 image_name="speechtonote-backend",
-                dockerfile_path="backend\\speech-to-note-backend\\Dockerfile",
-                context_path="backend\\speech-to-note-backend",
+                dockerfile_path=os.path.join(
+                    "backend", "speech-to-note-backend", "Dockerfile"
+                ),
+                context_path=os.path.join("backend", "speech-to-note-backend"),
                 default_port=8000,
                 container_port=8000,
                 build_args={}
@@ -36,9 +39,9 @@ class ServicesRegistry:
             "frontend": ServiceConfig(
                 name="Vue.js Frontend",
                 image_name="speechtonote-frontend",
-                dockerfile_path="frontend\\Dockerfile",
+                dockerfile_path=os.path.join("frontend", "Dockerfile"),
                 context_path="frontend",
-                default_port=3000,
+                default_port=5173,
                 container_port=80,
                 build_args={"VITE_CONFIG_ENV_FRONT": "local_docker"}
             )

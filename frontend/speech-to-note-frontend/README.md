@@ -1,61 +1,65 @@
-# speech-to-note-frontend
+# SpeechToNote — frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue 3 + TypeScript frontend. Records your voice, sends the audio to the Google
+Cloud Speech-to-Text API and stores the resulting speaker notes through the
+FastAPI backend.
 
-## Recommended IDE Setup
+## Setup
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
+```bash
+npm ci
 ```
 
-### Compile and Hot-Reload for Development
+## Configuration
 
-```sh
-npm run dev
+The app reads its configuration from `src/config/`:
+
+| File | Used for |
+| --- | --- |
+| `env.current.ts` | Selects the active config (build-time) |
+| `env.local.ts` | Running against a local FastAPI on port 8000 |
+| `env.local.docker.ts` | Running against the Docker backend |
+| `env.local.kub.ts` | Running against the kind cluster |
+
+Set `GCP_API_KEY` in the file for the environment you use. See the
+[Generate a Google Cloud API key](../../README.md#generate-a-google-cloud-api-key)
+section of the root README — the app ships with an empty key and does nothing
+until you add yours.
+
+To build for a specific environment:
+
+```bash
+VITE_CONFIG_ENV_FRONT=local_docker npm run build
 ```
 
-### Type-Check, Compile and Minify for Production
+## Run
 
-```sh
-npm run build
+```bash
+npm run dev        # dev server on http://localhost:5173
+npm run build      # type-check + production build
+npm run preview    # serve the production build
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+The backend must be running for notes to be saved. Without a Google API key the
+recording will fail — see the README above.
 
-```sh
-npm run test:unit
+## Tests
+
+```bash
+npm run type-check   # vue-tsc
+npm run lint         # eslint (read-only; use lint:fix to autofix)
+npm run build        # production build
+npm run test:unit    # vitest
+npm run test:e2e     # builds, serves, then runs the Cypress specs
 ```
 
-### Run End-to-End Tests with [Cypress](https://www.cypress.io/)
+The end-to-end suite builds the app first, so it works on a fresh clone:
 
-```sh
-npm run test:e2e:dev
-```
-
-This runs the end-to-end tests against the Vite development server.
-It is much faster than the production build.
-
-But it's still recommended to test the production build with `test:e2e` before deploying (e.g. in CI environments):
-
-```sh
-npm run build
+```bash
 npm run test:e2e
+# ✔ app.cy.ts — 1 passing
 ```
 
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+The suite is small so far: `tests/` covers the `Separator` component and
+`cypress/e2e/` renders the app. `test:e2e:dev` opens the interactive Cypress
+runner against the dev server.

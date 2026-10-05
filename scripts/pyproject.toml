@@ -1,10 +1,16 @@
 [project]
 name = "scripts"
 version = "0.1.0"
-description = "Add your description here"
+description = "Local dev tooling for SpeechToNote: Docker, MongoDB, FastAPI and kind helpers"
 readme = "README.md"
 requires-python = "==3.13.3"
 dependencies = [
     "rich==14.0.0",
     "typer==0.16.0",
+    "pydantic==2.9.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.4",
 ]

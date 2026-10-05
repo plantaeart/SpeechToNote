@@ -1,16 +1,22 @@
 <script setup lang="ts">
-const height = '4rem' // Default height for the separator
-
-const props = defineProps({
-  height: {
-    type: String,
-    default: height,
+// Type-based props: the compiler forbids referencing outer constants in an
+// object-style `default`, so the fallback lives with the type instead.
+withDefaults(
+  defineProps<{
+    height?: string
+  }>(),
+  {
+    height: '4rem',
   },
-})
+)
 </script>
 
 <template>
-  <div class="separator" :style="{ height: props.height }"></div>
+  <div class="separator" :style="{ height }"></div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.separator {
+  width: 100%;
+}
+</style>
